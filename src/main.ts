@@ -10,6 +10,7 @@ import { Model } from 'mongoose';
 import { getModelToken } from '@nestjs/mongoose';
 import * as bcrypt from 'bcryptjs';
 import { ALL_PERMISSIONS } from './config/permissions';
+import { AuthGuard } from './auth/auth.guard';
 
 dotenv.config();
 
@@ -29,15 +30,50 @@ async function bootstrap() {
     transform: true,
   }));
 
+  // Apply global auth guard AFTER app is configured
+  const authGuard = app.get(AuthGuard);
+  app.useGlobalGuards(authGuard);
+
   const config = new DocumentBuilder()
     .setTitle(process.env.SWAGGER_TITLE || 'Auth Backend API')
     .setDescription(process.env.SWAGGER_DESCRIPTION || 'Backend API with authentication and role-based access')
     .setVersion(process.env.SWAGGER_VERSION || '1.0')
-    .addBearerAuth()
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        description: 'Enter JWT token (without Bearer prefix)',
+        name: 'Authorization',
+        in: 'header',
+      },
+      'JWT',
+    )
     .build();
   
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  
+  // Add global security requirement
+  if (!document.components) {
+    document.components = {};
+  }
+  document.components.securitySchemes = {
+    JWT: {
+      type: 'http',
+      scheme: 'bearer',
+      bearerFormat: 'JWT',
+    },
+  };
+  
+  SwaggerModule.setup('api', app, document, {
+    swaggerOptions: { 
+      persistAuthorization: true,
+      docExpansion: 'none',
+      filter: true,
+      showRequestHeaders: true,
+    },
+    customSiteTitle: 'API Documentation',
+  });
 
   const port = process.env.PORT || 30001; 
   await app.listen(port);

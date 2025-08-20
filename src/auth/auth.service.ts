@@ -4,7 +4,7 @@ import { User } from '../schemas/user.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
-import { LoginDto } from './auth.dto';
+import { LoginDto, RegisterDto } from './auth.dto';
 import { CreateUserDto } from '../users/user.dto';
 import { Role } from '../schemas/role.schema';
 import { SessionService } from './session.service';

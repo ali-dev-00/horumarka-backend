@@ -1,14 +1,18 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto, UpdateUserDto } from './user.dto';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import { RequirePermissions } from '../auth/permissions.decorator';
+import { Permission } from '../config/permissions';
 
 @ApiTags('Users')
 @Controller('users')
+@ApiBearerAuth('JWT')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
+  @RequirePermissions(Permission.USER_CREATE)
   @ApiOperation({ summary: 'Create a new user' })
   @ApiResponse({ status: 201, description: 'User successfully created.' })
   async create(@Body() createUserDto: CreateUserDto) {
@@ -16,6 +20,7 @@ export class UsersController {
   }
 
   @Get()
+  @RequirePermissions(Permission.USER_READ)
   @ApiOperation({ summary: 'Get all users with pagination' })
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
   @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 10)' })
@@ -28,6 +33,7 @@ export class UsersController {
   }
 
   @Get('all')
+  @RequirePermissions(Permission.USER_READ)
   @ApiOperation({ summary: 'Get all users without pagination' })
   @ApiResponse({ status: 200, description: 'All users retrieved successfully.' })
   async findAllWithoutPagination() {
@@ -35,6 +41,7 @@ export class UsersController {
   }
 
   @Get(':id')
+  @RequirePermissions(Permission.USER_READ)
   @ApiOperation({ summary: 'Get a user by ID' })
   @ApiResponse({ status: 200, description: 'User retrieved successfully.' })
   @ApiResponse({ status: 404, description: 'User not found.' })
@@ -43,6 +50,7 @@ export class UsersController {
   }
 
   @Patch(':id')
+  @RequirePermissions(Permission.USER_UPDATE)
   @ApiOperation({ summary: 'Update a user' })
   @ApiResponse({ status: 200, description: 'User updated successfully.' })
   @ApiResponse({ status: 404, description: 'User not found.' })
@@ -51,6 +59,7 @@ export class UsersController {
   }
 
   @Delete(':id')
+  @RequirePermissions(Permission.USER_DELETE)
   @ApiOperation({ summary: 'Delete a user' })
   @ApiResponse({ status: 200, description: 'User deleted successfully.' })
   @ApiResponse({ status: 404, description: 'User not found.' })

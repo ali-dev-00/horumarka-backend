@@ -1,17 +1,21 @@
-import { Controller, Get, Post, Body, Param, Delete, Put, Query, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, Put, Query, NotFoundException, UseGuards } from '@nestjs/common';
 import { RolesService } from './roles.service';
 import { CreateRoleDto, UpdateRoleDto } from './role.dto';
 import { Role } from '../schemas/role.schema';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody, ApiQuery } from '@nestjs/swagger';
-import { ALL_PERMISSIONS } from '../config/permissions';  // Import all permissions
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import { ALL_PERMISSIONS } from '../config/permissions';
+import { RequirePermissions } from '../auth/permissions.decorator';
+import { Permission } from '../config/permissions';
 
 @ApiTags('Roles')
 @Controller('roles')
+@ApiBearerAuth('JWT')
 export class RolesController {
   constructor(private readonly rolesService: RolesService) {}
 
   // Create role
   @Post()
+  @RequirePermissions(Permission.ROLE_CREATE)
   @ApiOperation({ summary: 'Create a new role' })
   @ApiBody({
     description: 'The role to create',
@@ -32,6 +36,7 @@ export class RolesController {
 
   // Get all roles with pagination
   @Get()
+  @RequirePermissions(Permission.ROLE_READ)
   @ApiOperation({ summary: 'Get all roles (paginated)' })
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'limit', required: false, example: 10 })
@@ -56,6 +61,7 @@ export class RolesController {
 
   // Get role by ID
   @Get(':id')
+  @RequirePermissions(Permission.ROLE_READ)
   @ApiOperation({ summary: 'Get a role by ID' })
   @ApiParam({ name: 'id', required: true, description: 'Role ID' })
   @ApiResponse({ status: 200, description: 'Role found.' })
@@ -68,8 +74,8 @@ export class RolesController {
     return role;
   }
 
-  // Update role
   @Put(':id')
+  @RequirePermissions(Permission.ROLE_UPDATE)
   @ApiOperation({ summary: 'Update a role' })
   @ApiParam({ name: 'id', required: true, description: 'Role ID' })
   @ApiBody({
@@ -79,7 +85,7 @@ export class RolesController {
       'application/json': {
         value: {
           name: 'Admin Updated',
-          permissions: ALL_PERMISSIONS,  // Show all available permissions
+          permissions: ALL_PERMISSIONS, 
         },
       },
     },
@@ -94,8 +100,8 @@ export class RolesController {
     return role;
   }
 
-  // Delete role
   @Delete(':id')
+  @RequirePermissions(Permission.ROLE_DELETE)
   @ApiOperation({ summary: 'Delete a role' })
   @ApiParam({ name: 'id', required: true, description: 'Role ID' })
   @ApiResponse({ status: 200, description: 'Role deleted successfully.' })
