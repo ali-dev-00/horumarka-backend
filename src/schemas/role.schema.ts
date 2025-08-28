@@ -11,6 +11,9 @@ export class Role {
 
   @Prop({ type: [String], enum: Permission, default: [] })
   permissions: Permission[];
+
+  @Prop({ default: true })
+  status: boolean;
 }
 
 export const RoleSchema = SchemaFactory.createForClass(Role);

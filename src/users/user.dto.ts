@@ -19,7 +19,6 @@ export class CreateUserDto {
 
   @ApiProperty({ example: '507f1f77bcf86cd799439011', description: 'Role ID (ObjectId)' })
   @IsString()
-  @IsNotEmpty()
   roleId: string;
 }
 

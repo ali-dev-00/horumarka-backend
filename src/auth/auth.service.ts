@@ -1,11 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable , Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '../schemas/user.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
 import { LoginDto, RegisterDto } from './auth.dto';
-import { CreateUserDto } from '../users/user.dto';
 import { Role } from '../schemas/role.schema';
 import { SessionService } from './session.service';
 
@@ -18,28 +17,41 @@ export class AuthService {
     private readonly sessionService: SessionService,
   ) {}
 
-  // Register user
-  async register(createUserDto: CreateUserDto) {
-    const { name, email, password, roleId } = createUserDto;
-
-    // Default role to 'user' if no roleId is provided
-    const role = await this.roleModel.findById(roleId || 'default_role_id').exec();  // Replace with actual 'user' role ID
-
-    if (!role) {
-      throw new Error('Role not found');
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10); // Hash the password
-    const newUser = new this.userModel({ name, email, password: hashedPassword, roleId: role._id });
-    await newUser.save();
-
-    const payload = { userId: newUser._id, roleId: newUser.roleId, permissions: role.permissions };
-
-    const access_token = this.jwtService.sign(payload); // Generate JWT
+  async register(registerDto: RegisterDto) {
+    const { name, email, password } = registerDto;
+  
     
-    // Store token on server side
+    const existingUser = await this.userModel.findOne({ email }).exec();
+    if (existingUser) {
+      return { status: false, message: 'Email already in use' };
+    
+    }
+  
+    const role = await this.roleModel.findOne({ name: 'user' }).exec();
+    if (!role) {
+      return { status: false, message: 'Role not found' };
+    }
+  
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = new this.userModel({
+      name,
+      email,
+      password: hashedPassword,
+      roleId: role._id, // Assign the roleId from the 'user' role
+    });
+  
+    await newUser.save();
+  
+    const payload = {
+      userId: newUser._id,
+      roleId: role._id,
+      permissions: role.permissions || [],  
+    };
+  
+    const access_token = this.jwtService.sign(payload);
+    
     await this.sessionService.storeToken(newUser._id.toString(), access_token);
-
+  
     return {
       data: {
         access_token,
@@ -47,40 +59,39 @@ export class AuthService {
           name: newUser.name,
           email: newUser.email,
           role: role.name,
-          permissions: role.permissions,
+          permissions: role.permissions || [],
+          isAdmin: role.permissions && role.permissions.length > 0, 
         },
       },
     };
   }
+  
 
-  // Login user
   async login(loginDto: LoginDto) {
     const { email, password } = loginDto;
+
     const user = await this.userModel
       .findOne({ email })
-      .populate('roleId') // Populate the full role document
+      .populate('roleId') 
       .exec();
 
     if (!user) {
-      throw new Error('User not found');
+      return { status: false, message: 'User not found' };
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      throw new Error('Invalid credentials');
+      return { status: false, message: 'Invalid credentials' };
     }
 
-    const role = user.roleId as unknown as Role & { _id: string }; // TypeScript: role is now populated, cast to Role
-    const permissions = role ? role.permissions : []; // Access permissions from populated role
-
+    const role = user.roleId as unknown as Role & { _id: string };
+    const permissions = role ? role.permissions : [];
     const payload = { userId: user._id, roleId: role._id, permissions };
-
-    const access_token = this.jwtService.sign(payload); // Generate JWT
-    
-    // Store token on server side
+    const access_token = this.jwtService.sign(payload);
     await this.sessionService.storeToken(user._id.toString(), access_token);
 
     return {
+      status: true,
       data: {
         access_token,
         user: {
@@ -88,22 +99,19 @@ export class AuthService {
           email: user.email,
           role: role.name,
           permissions: permissions,
+          isAdmin: permissions && permissions.length > 0 
         },
       },
     };
   }
 
-  // Logout user
   async logout(userId: string): Promise<{ message: string }> {
-    // Remove token from server-side storage
     await this.sessionService.removeToken(userId);
-    
     return {
       message: 'Successfully logged out',
     };
   }
 
-  // Validate token from server-side storage
   async validateToken(userId: string, token: string): Promise<boolean> {
     return await this.sessionService.isTokenValid(userId, token);
   }

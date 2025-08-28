@@ -1,12 +1,13 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Get, Req } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { LoginDto, RegisterDto } from './auth.dto';
-import { CreateUserDto } from '../users/user.dto';
 import { Public } from './public.decorator';
+import { AuthGuard } from './auth.guard';
+import { PermissionsGuard } from './permissions.guard';
 
 @ApiTags('Auth')
-@Controller('auth')
+@Controller('api/auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
@@ -14,8 +15,8 @@ export class AuthController {
   @Post('register')
   @ApiOperation({ summary: 'Register a new user' })
   @ApiResponse({ status: 201, description: 'User successfully registered.' })
-  async register(@Body() createUserDto: CreateUserDto) {
-    return this.authService.register(createUserDto);
+  async register(@Body() registerDto: RegisterDto) {
+    return this.authService.register(registerDto);
   }
 
   @Public()
@@ -32,6 +33,23 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'User successfully logged out.' })
   async logout(@Body('userId') userId: string) {
     return this.authService.logout(userId);
+  }
+
+
+  @ApiBearerAuth('JWT')
+  @UseGuards(AuthGuard, PermissionsGuard) 
+  @Get('profile')
+  @ApiOperation({ summary: 'Get user profile' })
+  @ApiResponse({ status: 200, description: 'User profile fetched successfully.' })
+  async getProfile(@Req() request: Request) {
+    const user = request['user'];  
+    return {
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      permissions: user.permissions,
+      isAdmin: user.isAdmin,
+    };
   }
 
 }

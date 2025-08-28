@@ -20,13 +20,13 @@ import { Role, RoleSchema } from '../schemas/role.schema';
     PassportModule,
     CacheModule.register({
       isGlobal: true,
-      ttl: 3600, // 1 hour default TTL
+      ttl: 30 * 24 * 60 * 60 * 1000 ,
     }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET') || 'fallback-secret-key',
-        signOptions: { expiresIn: '1h' },
+        signOptions: { expiresIn: '30d' },
       }),
       inject: [ConfigService],
     }),

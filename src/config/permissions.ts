@@ -16,10 +16,6 @@ export enum Permission {
   CATEGORY_READ = 'category:read',
   CATEGORY_UPDATE = 'category:update',
   CATEGORY_DELETE = 'category:delete',
-  CATEGORY_TOGGLE_STATUS = 'category:toggle-status',
-
-  // Public permissions (for guest users)
-  CATEGORY_READ_PUBLIC = 'category:read:public',
 }
 
 export const ALL_PERMISSIONS = Object.values(Permission);

@@ -21,7 +21,7 @@ export class User {
   password: string;
 
   @Prop({ type: Types.ObjectId, ref: 'Role', required: true })
-  roleId: Types.ObjectId;  // Reference to the Role document
+  roleId: Types.ObjectId;  
 
   @Prop({ enum: UserStatus, default: UserStatus.ACTIVE })
   status: UserStatus;

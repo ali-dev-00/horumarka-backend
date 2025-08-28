@@ -1,92 +1,99 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, Put, Query } from '@nestjs/common';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto, UpdateCategoryDto } from './category.dto';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { RequirePermissions } from '../auth/permissions.decorator';
 import { Permission } from '../config/permissions';
-import { Public } from '../auth/public.decorator';
+import { ServerResponse } from '../config/common/response.dto';
+import { Category } from '../schemas/category.schema';
+import { Public } from 'src/auth/public.decorator';
 
 @ApiTags('Categories')
-@Controller('categories')
+@Controller('api/categories')
+@ApiBearerAuth('JWT')
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
   @Post()
-  @ApiBearerAuth('JWT')
   @RequirePermissions(Permission.CATEGORY_CREATE)
   @ApiOperation({ summary: 'Create a new category' })
-  @ApiResponse({ status: 201, description: 'Category successfully created.' })
-  async create(@Body() createCategoryDto: CreateCategoryDto) {
-    return this.categoriesService.create(createCategoryDto);
+  async create(@Body() createCategoryDto: CreateCategoryDto): Promise<ServerResponse<Category>> {
+    const newCategory = await this.categoriesService.create(createCategoryDto);
+    if (!newCategory) {
+      return { status: false, message: 'Category with this name already exists', data: null };
+    }
+    return { status: true, message: 'Category created successfully', data: newCategory };
   }
 
   @Get()
-  @ApiBearerAuth('JWT')
   @RequirePermissions(Permission.CATEGORY_READ)
-  @ApiOperation({ summary: 'Get all categories with pagination' })
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 10)' })
-  @ApiResponse({ status: 200, description: 'Categories retrieved successfully.' })
-  async findAll(
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
-  ) {
-    return this.categoriesService.findAllPaginated(page, limit);
+  @ApiOperation({ summary: 'Get all categories (paginated)' })
+  async findAll(@Query('page') page = 1, @Query('limit') limit = 10): Promise<ServerResponse<Category[]>> {
+    const categories = await this.categoriesService.findAllPaginated(+page, +limit);
+    return { status: true, message: 'Categories fetched successfully', data: categories };
   }
 
   @Get('all')
   @Public()
   @ApiOperation({ summary: 'Get all categories without pagination (Public)' })
-  @ApiResponse({ status: 200, description: 'All categories retrieved successfully.' })
-  async findAllWithoutPagination() {
-    return this.categoriesService.findAll();
+  async findAllWithoutPagination(): Promise<ServerResponse<Category[]>> {
+    const categories = await this.categoriesService.findAll();
+    return { status: true, message: 'All categories fetched successfully', data: categories };
   }
 
   @Get('active')
   @Public()
   @ApiOperation({ summary: 'Get all active categories (Public)' })
-  @ApiResponse({ status: 200, description: 'Active categories retrieved successfully.' })
-  async findActive() {
-    return this.categoriesService.findActive();
+  async findActive(): Promise<ServerResponse<Category[]>> {
+    const categories = await this.categoriesService.findActive();
+    return { status: true, message: 'Active categories fetched successfully', data: categories };
   }
 
   @Get(':id')
-  @ApiBearerAuth('JWT')
   @RequirePermissions(Permission.CATEGORY_READ)
+  @ApiBearerAuth('JWT')
   @ApiOperation({ summary: 'Get a category by ID' })
-  @ApiResponse({ status: 200, description: 'Category retrieved successfully.' })
-  @ApiResponse({ status: 404, description: 'Category not found.' })
-  async findOne(@Param('id') id: string) {
-    return this.categoriesService.findOne(id);
+  async findOne(@Param('id') id: string): Promise<ServerResponse<Category>> {
+    const category = await this.categoriesService.findOne(id);
+    if (!category) {
+      return { status: false, message: 'Category not found', data: null };
+    }
+    return { status: true, message: 'Category fetched successfully', data: category };
   }
 
-  @Patch(':id')
+  @Put(':id')
   @ApiBearerAuth('JWT')
   @RequirePermissions(Permission.CATEGORY_UPDATE)
   @ApiOperation({ summary: 'Update a category' })
-  @ApiResponse({ status: 200, description: 'Category updated successfully.' })
-  @ApiResponse({ status: 404, description: 'Category not found.' })
-  async update(@Param('id') id: string, @Body() updateCategoryDto: UpdateCategoryDto) {
-    return this.categoriesService.update(id, updateCategoryDto);
+  async update(@Param('id') id: string, @Body() updateCategoryDto: UpdateCategoryDto): Promise<ServerResponse<Category>> {
+    const updatedCategory = await this.categoriesService.update(id, updateCategoryDto);
+    if (!updatedCategory) {
+      return { status: false, message: updateCategoryDto.name ? 'Category with this name already exists' : 'Category not found', data: null };
+    }
+    return { status: true, message: 'Category updated successfully', data: updatedCategory };
   }
 
-  @Patch(':id/toggle-status')
+  @Put(':id/toggle-status')
   @ApiBearerAuth('JWT')
-  @RequirePermissions(Permission.CATEGORY_TOGGLE_STATUS)
+  @RequirePermissions(Permission.CATEGORY_UPDATE)
   @ApiOperation({ summary: 'Toggle category status (active/inactive)' })
-  @ApiResponse({ status: 200, description: 'Category status toggled successfully.' })
-  @ApiResponse({ status: 404, description: 'Category not found.' })
-  async toggleStatus(@Param('id') id: string) {
-    return this.categoriesService.toggleStatus(id);
+  async toggleStatus(@Param('id') id: string): Promise<ServerResponse<Category>> {
+    const category = await this.categoriesService.toggleStatus(id);
+    if (!category) {
+      return { status: false, message: 'Category not found', data: null };
+    }
+    return { status: true, message: 'Category status toggled successfully', data: category };
   }
 
   @Delete(':id')
   @ApiBearerAuth('JWT')
   @RequirePermissions(Permission.CATEGORY_DELETE)
   @ApiOperation({ summary: 'Delete a category' })
-  @ApiResponse({ status: 200, description: 'Category deleted successfully.' })
-  @ApiResponse({ status: 404, description: 'Category not found.' })
-  async remove(@Param('id') id: string) {
-    return this.categoriesService.remove(id);
+  async remove(@Param('id') id: string): Promise<ServerResponse<null>> {
+    const deleted = await this.categoriesService.remove(id);
+    if (!deleted) {
+      return { status: false, message: 'Category not found', data: null };
+    }
+    return { status: true, message: 'Category deleted successfully', data: null };
   }
 }

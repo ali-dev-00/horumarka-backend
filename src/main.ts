@@ -5,19 +5,17 @@ import { ValidationPipe } from '@nestjs/common';
 import * as dotenv from 'dotenv';
 import { Role } from './schemas/role.schema';
 import { User } from './schemas/user.schema';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
 import { getModelToken } from '@nestjs/mongoose';
 import * as bcrypt from 'bcryptjs';
 import { ALL_PERMISSIONS } from './config/permissions';
 import { AuthGuard } from './auth/auth.guard';
+import { HttpExceptionFilter } from './config/common/http-exception.filter';
 
 dotenv.config();
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Ensure roles are created on startup
   await createDefaultRolesAndAdminUser(app);
 
   app.enableCors({
@@ -30,7 +28,6 @@ async function bootstrap() {
     transform: true,
   }));
 
-  // Apply global auth guard AFTER app is configured
   const authGuard = app.get(AuthGuard);
   app.useGlobalGuards(authGuard);
 
@@ -52,8 +49,7 @@ async function bootstrap() {
     .build();
   
   const document = SwaggerModule.createDocument(app, config);
-  
-  // Add global security requirement
+
   if (!document.components) {
     document.components = {};
   }
@@ -76,6 +72,7 @@ async function bootstrap() {
   });
 
   const port = process.env.PORT || 30001; 
+  app.useGlobalFilters(new HttpExceptionFilter());
   await app.listen(port);
   console.log(`Application is running on: http://localhost:${port}`);
   console.log(`Swagger documentation: http://localhost:${port}/api`);

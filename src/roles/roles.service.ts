@@ -16,7 +16,12 @@ export class RolesService {
       .exec();
   }
   
-  async create(createRoleDto: CreateRoleDto): Promise<Role> {
+  async create(createRoleDto: CreateRoleDto): Promise<Role | null> {
+    const existing = await this.roleModel.findOne({ name: createRoleDto.name });
+    if (existing) {
+      return null; 
+    }
+
     const createdRole = new this.roleModel(createRoleDto);
     return createdRole.save();
   }
@@ -30,6 +35,17 @@ export class RolesService {
   }
   
   async update(id: string, updateRoleDto: UpdateRoleDto): Promise<Role | null> {
+    if (updateRoleDto.name) {
+    
+      const existing = await this.roleModel.findOne({
+        name: updateRoleDto.name,
+        _id: { $ne: id },
+      });
+      if (existing) {
+        return null; 
+      }
+    }
+
     return this.roleModel.findByIdAndUpdate(id, updateRoleDto, { new: true }).exec();
   }
   
