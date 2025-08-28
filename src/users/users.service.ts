@@ -1,3 +1,5 @@
+// users.service.ts
+
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -18,12 +20,13 @@ export class UsersService {
       .exec();
   }
   
-  async create(createUserDto: CreateUserDto): Promise<User> {
+  async create(createUserDto: CreateUserDto): Promise<User | null> {
     const { name, email, password, roleId } = createUserDto;
-    
-    // Hash the password
+
+    const existing = await this.userModel.findOne({ email });
+    if (existing) return null;
+
     const hashedPassword = await bcrypt.hash(password, 10);
-    
     const createdUser = new this.userModel({ 
       name, 
       email, 
@@ -43,16 +46,26 @@ export class UsersService {
   
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User | null> {
     const updateData = { ...updateUserDto };
+
+    if (updateData.email) {
+      const existing = await this.userModel.findOne({
+        email: updateData.email,
+        _id: { $ne: id },
+      });
+      if (existing) return null;
+    }
     
-    // Hash password if it's being updated
     if (updateData.password) {
       updateData.password = await bcrypt.hash(updateData.password, 10);
     }
     
-    return this.userModel.findByIdAndUpdate(id, updateData, { new: true }).populate('roleId').exec();
+    return this.userModel
+      .findByIdAndUpdate(id, updateData, { new: true })
+      .populate('roleId')
+      .exec();
   }
   
-  async remove(id: string): Promise<any> {
+  async remove(id: string): Promise<User | null> {
     return this.userModel.findByIdAndDelete(id).exec();
   }
 }

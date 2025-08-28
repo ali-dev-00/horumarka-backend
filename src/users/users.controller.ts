@@ -1,12 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto, UpdateUserDto } from './user.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { RequirePermissions } from '../auth/permissions.decorator';
 import { Permission } from '../config/permissions';
+import { ServerResponse } from '../config/common/response.dto';
+import { User } from '../schemas/user.schema';
 
 @ApiTags('Users')
-@Controller('users')
+@Controller('api/users')
 @ApiBearerAuth('JWT')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
@@ -14,9 +16,12 @@ export class UsersController {
   @Post()
   @RequirePermissions(Permission.USER_CREATE)
   @ApiOperation({ summary: 'Create a new user' })
-  @ApiResponse({ status: 201, description: 'User successfully created.' })
-  async create(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.create(createUserDto);
+  async create(@Body() createUserDto: CreateUserDto): Promise<ServerResponse<User>> {
+    const newUser = await this.usersService.create(createUserDto);
+    if (!newUser) {
+      return { status: false, message: 'Email already exists', data: null };
+    }
+    return { status: true, message: 'User created successfully', data: newUser };
   }
 
   @Get()
@@ -24,46 +29,49 @@ export class UsersController {
   @ApiOperation({ summary: 'Get all users with pagination' })
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
   @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 10)' })
-  @ApiResponse({ status: 200, description: 'Users retrieved successfully.' })
-  async findAll(
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
-  ) {
-    return this.usersService.findAllPaginated(page, limit);
+  async findAll(@Query('page') page = 1, @Query('limit') limit = 10): Promise<ServerResponse<User[]>> {
+    const users = await this.usersService.findAllPaginated(+page, +limit);
+    return { status: true, message: 'Users fetched successfully', data: users };
   }
 
   @Get('all')
   @RequirePermissions(Permission.USER_READ)
   @ApiOperation({ summary: 'Get all users without pagination' })
-  @ApiResponse({ status: 200, description: 'All users retrieved successfully.' })
-  async findAllWithoutPagination() {
-    return this.usersService.findAll();
+  async findAllWithoutPagination(): Promise<ServerResponse<User[]>> {
+    const users = await this.usersService.findAll();
+    return { status: true, message: 'All users retrieved successfully', data: users };
   }
 
   @Get(':id')
   @RequirePermissions(Permission.USER_READ)
   @ApiOperation({ summary: 'Get a user by ID' })
-  @ApiResponse({ status: 200, description: 'User retrieved successfully.' })
-  @ApiResponse({ status: 404, description: 'User not found.' })
-  async findOne(@Param('id') id: string) {
-    return this.usersService.findOne(id);
+  async findOne(@Param('id') id: string): Promise<ServerResponse<User>> {
+    const user = await this.usersService.findOne(id);
+    if (!user) {
+      return { status: false, message: 'User not found', data: null };
+    }
+    return { status: true, message: 'User fetched successfully', data: user };
   }
 
   @Patch(':id')
   @RequirePermissions(Permission.USER_UPDATE)
   @ApiOperation({ summary: 'Update a user' })
-  @ApiResponse({ status: 200, description: 'User updated successfully.' })
-  @ApiResponse({ status: 404, description: 'User not found.' })
-  async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(id, updateUserDto);
+  async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto): Promise<ServerResponse<User>> {
+    const updatedUser = await this.usersService.update(id, updateUserDto);
+    if (!updatedUser) {
+      return { status: false, message: updateUserDto.email ? 'Email already exists' : 'User not found', data: null };
+    }
+    return { status: true, message: 'User updated successfully', data: updatedUser };
   }
 
   @Delete(':id')
   @RequirePermissions(Permission.USER_DELETE)
   @ApiOperation({ summary: 'Delete a user' })
-  @ApiResponse({ status: 200, description: 'User deleted successfully.' })
-  @ApiResponse({ status: 404, description: 'User not found.' })
-  async remove(@Param('id') id: string) {
-    return this.usersService.remove(id);
+  async remove(@Param('id') id: string): Promise<ServerResponse<null>> {
+    const deleted = await this.usersService.remove(id);
+    if (!deleted) {
+      return { status: false, message: 'User not found', data: null };
+    }
+    return { status: true, message: 'User deleted successfully', data: null };
   }
 }
