@@ -40,12 +40,12 @@ async function bootstrap() {
         type: 'http',
         scheme: 'bearer',
         bearerFormat: 'JWT',
-        description: 'Enter JWT token (with Bearer prefix, e.g. "Bearer <token>")',
+        description: 'Enter JWT token (without Bearer prefix)',
         name: 'Authorization',
         in: 'header',
       },
       'JWT',
-    )    
+    )
     .build();
   
   const document = SwaggerModule.createDocument(app, config);
@@ -61,15 +61,7 @@ async function bootstrap() {
     },
   };
   
-  SwaggerModule.setup('api', app, document, {
-    swaggerOptions: { 
-      persistAuthorization: true,
-      docExpansion: 'none',
-      filter: true,
-      showRequestHeaders: true,
-    },
-    customSiteTitle: 'API Documentation',
-  });
+  SwaggerModule.setup('api', app, document);
 
   const port = process.env.PORT || 30001; 
   app.useGlobalFilters(new HttpExceptionFilter());
