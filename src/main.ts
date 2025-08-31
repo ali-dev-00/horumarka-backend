@@ -19,16 +19,17 @@ async function bootstrap() {
   await createDefaultRolesAndAdminUser(app);
 
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3001',
-    methods: 'GET,POST,PUT,DELETE,OPTIONS',  
-    allowedHeaders: 'Content-Type, Authorization',  
-    credentials: true,   
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    credentials: true,
   });
 
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,
     transform: true,
   }));
+
+  const authGuard = app.get(AuthGuard);
+  app.useGlobalGuards(authGuard);
 
   const config = new DocumentBuilder()
     .setTitle(process.env.SWAGGER_TITLE || 'Auth Backend API')
