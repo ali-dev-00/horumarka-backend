@@ -20,7 +20,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     response.status(status).json({
       status: false,
       message: message,
-      data: null, // Error responses mein data null hoga
+      data: null, 
     });
   }
 }

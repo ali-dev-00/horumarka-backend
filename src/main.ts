@@ -28,7 +28,8 @@ async function bootstrap() {
     transform: true,
   }));
 
-
+  // const authGuard = app.get(AuthGuard);
+  // app.useGlobalGuards(authGuard);
 
   const config = new DocumentBuilder()
     .setTitle(process.env.SWAGGER_TITLE || 'Auth Backend API')
@@ -60,8 +61,8 @@ async function bootstrap() {
     },
   };
   
-  SwaggerModule.setup('api', app, document, {
-    swaggerOptions: { 
+  SwaggerModule.setup('docs', app, document, {
+    swaggerOptions: {
       persistAuthorization: true,
       docExpansion: 'none',
       filter: true,
@@ -69,7 +70,7 @@ async function bootstrap() {
     },
     customSiteTitle: 'API Documentation',
   });
-
+  
   const port = process.env.PORT || 30001; 
   app.useGlobalFilters(new HttpExceptionFilter());
   await app.listen(port);
