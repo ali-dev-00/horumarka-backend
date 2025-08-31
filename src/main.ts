@@ -61,7 +61,14 @@ async function bootstrap() {
     },
   };
   
-  SwaggerModule.setup('api', app, document);
+  SwaggerModule.setup('api', app, document, {
+    swaggerOptions: { 
+      docExpansion: 'none',
+      filter: true,
+      showRequestHeaders: true,
+    },
+    customSiteTitle: 'API Documentation',
+  });
 
   const port = process.env.PORT || 30001; 
   app.useGlobalFilters(new HttpExceptionFilter());
