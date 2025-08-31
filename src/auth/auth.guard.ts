@@ -42,7 +42,7 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException('Invalid token');
     }
 
-    // After authentication, check permissions
+
     return this.permissionsGuard.canActivate(context);
   }
 

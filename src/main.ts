@@ -30,9 +30,6 @@ async function bootstrap() {
     transform: true,
   }));
 
-  const authGuard = app.get(AuthGuard);
-  app.useGlobalGuards(authGuard);
-
   const config = new DocumentBuilder()
     .setTitle(process.env.SWAGGER_TITLE || 'Auth Backend API')
     .setDescription(process.env.SWAGGER_DESCRIPTION || 'Backend API with authentication and role-based access')

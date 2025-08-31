@@ -7,7 +7,6 @@ export class SessionService {
   constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
 
   async storeToken(userId: string, token: string, expiresIn: number = 3600): Promise<void> {
-    // Store token with user ID as key, expires in 1 hour by default
     await this.cacheManager.set(`token:${userId}`, token, expiresIn);
   }
 
