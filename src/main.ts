@@ -15,7 +15,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const configService = app.get(ConfigService);
-  const frontendUrl = configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+  const frontendUrl = configService.get<string>('FRONTEND_URL') || 'https://company-site-beryl.vercel.app/';
   const port = configService.get<number>('PORT') || 3001;
 
   // --- Global middlewares ---
