@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Put } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto, UpdateUserDto } from './user.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
@@ -53,7 +53,7 @@ export class UsersController {
     return { status: true, message: 'User fetched successfully', data: user };
   }
 
-  @Patch(':id')
+  @Put(':id')
   @RequirePermissions(Permission.USER_UPDATE)
   @ApiOperation({ summary: 'Update a user' })
   async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto): Promise<ServerResponse<User>> {
