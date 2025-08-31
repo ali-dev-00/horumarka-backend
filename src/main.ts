@@ -19,8 +19,10 @@ async function bootstrap() {
   await createDefaultRolesAndAdminUser(app);
 
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-    credentials: true,
+    origin: process.env.FRONTEND_URL || 'http://localhost:3001',
+    methods: 'GET,POST,PUT,DELETE,OPTIONS',  
+    allowedHeaders: 'Content-Type, Authorization',  
+    credentials: true,   
   });
 
   app.useGlobalPipes(new ValidationPipe({
