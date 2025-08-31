@@ -28,8 +28,7 @@ async function bootstrap() {
     transform: true,
   }));
 
-  const authGuard = app.get(AuthGuard);
-  app.useGlobalGuards(authGuard);
+
 
   const config = new DocumentBuilder()
     .setTitle(process.env.SWAGGER_TITLE || 'Auth Backend API')
@@ -63,6 +62,7 @@ async function bootstrap() {
   
   SwaggerModule.setup('api', app, document, {
     swaggerOptions: { 
+      persistAuthorization: true,
       docExpansion: 'none',
       filter: true,
       showRequestHeaders: true,
