@@ -6,17 +6,19 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { RequirePermissions } from '../auth/permissions.decorator';
 import { Permission } from '../config/permissions';
 import { ServerResponse } from '../config/common/response.dto';
+import { AuthGuard } from '@nestjs/passport';
+import { PermissionsGuard } from 'src/auth/permissions.guard';
 
 @ApiTags('Roles')
 @Controller('api/roles')
 @ApiBearerAuth('JWT')
 export class RolesController {
-  constructor(private readonly rolesService: RolesService) {}
+  constructor(private readonly rolesService: RolesService) { }
 
   @Post()
   @RequirePermissions(Permission.ROLE_CREATE)
   @ApiOperation({ summary: 'Create a new role' })
-async create(@Body() createRoleDto: CreateRoleDto): Promise<ServerResponse<Role>> {
+  async create(@Body() createRoleDto: CreateRoleDto): Promise<ServerResponse<Role>> {
     const newRole = await this.rolesService.create(createRoleDto);
 
     if (!newRole) {
@@ -53,11 +55,11 @@ async create(@Body() createRoleDto: CreateRoleDto): Promise<ServerResponse<Role>
   async findOne(@Param('id') id: string): Promise<ServerResponse<Role>> {
     const role = await this.rolesService.findOne(id);
     if (!role) {
-       return {
-           status: false,
-           message: 'Role not found',
-           data: null, 
-        }
+      return {
+        status: false,
+        message: 'Role not found',
+        data: null,
+      }
     }
     return {
       status: true,
@@ -98,16 +100,16 @@ async create(@Body() createRoleDto: CreateRoleDto): Promise<ServerResponse<Role>
   async remove(@Param('id') id: string): Promise<ServerResponse<null>> {
     const deletedRole = await this.rolesService.remove(id);
     if (!deletedRole) {
-        return {
-           status: false,
-           message: 'Role not found',
-           data: null, 
-        }
+      return {
+        status: false,
+        message: 'Role not found',
+        data: null,
+      }
     }
     return {
       status: true,
       message: 'Role deleted successfully',
-      data: null, 
+      data: null,
     };
   }
 }

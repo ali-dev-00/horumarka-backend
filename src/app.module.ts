@@ -7,6 +7,7 @@ import { RolesModule } from './roles/roles.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { CategoriesModule } from './categories/categories.module';
+import { CoursesModule } from './courses/courses.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }), 
@@ -24,7 +25,8 @@ import { CategoriesModule } from './categories/categories.module';
     RolesModule,
     AuthModule,
     UsersModule,
-    CategoriesModule
+    CategoriesModule,
+    CoursesModule
   ],
   controllers: [AppController],
   providers: [AppService],

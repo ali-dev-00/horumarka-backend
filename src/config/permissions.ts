@@ -16,6 +16,12 @@ export enum Permission {
   CATEGORY_READ = 'category:read',
   CATEGORY_UPDATE = 'category:update',
   CATEGORY_DELETE = 'category:delete',
+
+  // course permissions
+  COURSE_CREATE = 'course:create',
+  COURSE_READ = 'course:read',
+  COURSE_UPDATE = 'course:update',
+  COURSE_DELETE = 'course:delete',
 }
 
 export const ALL_PERMISSIONS = Object.values(Permission);
