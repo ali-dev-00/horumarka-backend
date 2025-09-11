@@ -5,7 +5,6 @@ import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import { getModelToken } from '@nestjs/mongoose';
-
 import { Role } from './schemas/role.schema';
 import { User } from './schemas/user.schema';
 import { ALL_PERMISSIONS } from './config/permissions';

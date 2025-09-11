@@ -22,6 +22,12 @@ export enum Permission {
   COURSE_READ = 'course:read',
   COURSE_UPDATE = 'course:update',
   COURSE_DELETE = 'course:delete',
+
+  // Content Management permissions
+  CONTENT_MANAGEMENT_CREATE = 'content-management:create',
+  CONTENT_MANAGEMENT_READ = 'content-management:read',
+  CONTENT_MANAGEMENT_UPDATE = 'content-management:update',
+  CONTENT_MANAGEMENT_DELETE = 'content-management:delete',
 }
 
 export const ALL_PERMISSIONS = Object.values(Permission);

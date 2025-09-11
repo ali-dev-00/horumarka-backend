@@ -6,6 +6,5 @@ export class ServerResponse<T> {
 
   @ApiProperty({ example: 'Operation successful' })
   message: string;
-
   data: T | null;
 }
