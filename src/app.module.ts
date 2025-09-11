@@ -28,7 +28,7 @@ import { ContentManagementModule } from './content-management/content-management
     UsersModule,
     CategoriesModule,
     CoursesModule,
-    ContentManagementModule
+    // ContentManagementModule
   ],
   controllers: [AppController],
   providers: [AppService],
