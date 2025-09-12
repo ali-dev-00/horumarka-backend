@@ -26,6 +26,15 @@ async function bootstrap() {
     credentials: true,
   });
 
+  // Configure body size limits for file uploads
+  app.use('/api', (req, res, next) => {
+    if (req.url.includes('/upload')) {
+      // Increase limits for upload endpoints
+      req.setTimeout(30000); // 30 seconds timeout
+    }
+    next();
+  });
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

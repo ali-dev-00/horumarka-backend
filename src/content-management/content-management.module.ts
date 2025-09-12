@@ -7,6 +7,7 @@ import { ContentManagementController } from './content-management.controller';
 import { ContentManagement, ContentManagementSchema } from '../schemas/content-management.schema';
 import { AuthGuard } from '../auth/auth.guard';
 import { PermissionsGuard } from '../auth/permissions.guard';
+import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { PermissionsGuard } from '../auth/permissions.guard';
       }),
       inject: [ConfigService],
     }),
+    CloudinaryModule,
   ],
   controllers: [ContentManagementController],
   providers: [ContentManagementService, AuthGuard, PermissionsGuard],

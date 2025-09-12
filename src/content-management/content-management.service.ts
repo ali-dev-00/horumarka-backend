@@ -3,12 +3,14 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ContentManagement, ContentManagementDocument } from '../schemas/content-management.schema';
 import { CreateContentManagementDto, UpdateContentManagementDto } from './content-management.dto';
+import { UploadService } from '../cloudinary/upload.service';
 
 @Injectable()
 export class ContentManagementService {
   constructor(
     @InjectModel(ContentManagement.name)
     private contentManagementModel: Model<ContentManagementDocument>,
+    private readonly uploadService: UploadService,
   ) {}
 
   async create(createContentManagementDto: CreateContentManagementDto): Promise<ContentManagement> {
@@ -126,6 +128,66 @@ export class ContentManagementService {
       return JSON.parse(content.sectionContent);
     } catch (error) {
       throw new ConflictException('Invalid JSON format in stored content');
+    }
+  }
+
+  // Create or update content with image upload
+  async upsertContentWithImage(
+    sectionName: string,
+    contentData: any,
+    image?: Express.Multer.File
+  ): Promise<ContentManagement> {
+    try {
+      let imageUrl = '';
+      
+      // Upload image to Cloudinary if provided
+      if (image) {
+        const uploadResult = await this.uploadService.uploadImage(image);
+        imageUrl = uploadResult.secure_url;
+      }
+
+      // Add image URL to content data
+      const finalContentData = {
+        ...contentData,
+        ...(imageUrl && { image: imageUrl })
+      };
+
+      // Validate JSON format
+      try {
+        JSON.stringify(finalContentData);
+      } catch (error) {
+        throw new ConflictException('Invalid content data format');
+      }
+
+      // Check if content section already exists
+      try {
+        const existingContent = await this.findBySectionName(sectionName);
+        // Update existing content
+        return await this.updateBySectionName(sectionName, {
+          sectionContent: JSON.stringify(finalContentData)
+        });
+      } catch (error) {
+        if (error instanceof NotFoundException) {
+          // Create new content
+          return await this.create({
+            sectionName,
+            sectionContent: JSON.stringify(finalContentData)
+          });
+        }
+        throw error;
+      }
+    } catch (error) {
+      // Handle specific Cloudinary errors
+      if (error.message && error.message.includes('File too large')) {
+        throw new ConflictException('Image file is too large. Please upload an image smaller than 10MB.');
+      }
+      
+      // Handle other Cloudinary errors
+      if (error.message && error.message.includes('Invalid image')) {
+        throw new ConflictException('Invalid image format. Please upload a valid image file.');
+      }
+      
+      throw error;
     }
   }
 }

@@ -6,6 +6,8 @@ import {
   Patch,
   Param,
   UseGuards,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -13,7 +15,9 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
+  ApiConsumes,
 } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ContentManagementService } from './content-management.service';
 import { 
   CreateContentManagementDto, 
@@ -24,16 +28,15 @@ import { AuthGuard } from '../auth/auth.guard';
 import { PermissionsGuard } from '../auth/permissions.guard';
 import { RequirePermissions } from '../auth/permissions.decorator';
 import { Permission } from '../config/permissions';
+import { multerConfig } from './multer.config';
 
 @ApiTags('Content Management')
 @Controller('api/content-management')
-@UseGuards(AuthGuard)
-@ApiBearerAuth()
+@ApiBearerAuth('JWT')
 export class ContentManagementController {
   constructor(private readonly contentManagementService: ContentManagementService) {}
 
   @Post()
-  @UseGuards(PermissionsGuard)
   @RequirePermissions(Permission.CONTENT_MANAGEMENT_CREATE)
   @ApiOperation({ summary: 'Create new content section by section name' })
   @ApiResponse({
@@ -43,11 +46,15 @@ export class ContentManagementController {
   })
   @ApiResponse({ status: 409, description: 'Section name already exists or invalid JSON' })
   async create(@Body() createContentManagementDto: CreateContentManagementDto) {
-    return await this.contentManagementService.create(createContentManagementDto);
+    const content = await this.contentManagementService.create(createContentManagementDto);
+    return {
+      status: true,
+      message: 'Content section created successfully',
+      data: content
+    };
   }
 
   @Get(':sectionName')
-  @UseGuards(PermissionsGuard)
   @RequirePermissions(Permission.CONTENT_MANAGEMENT_READ)
   @ApiOperation({ summary: 'Get content by unique section name' })
   @ApiParam({ name: 'sectionName', description: 'Unique section name' })
@@ -58,11 +65,15 @@ export class ContentManagementController {
   })
   @ApiResponse({ status: 404, description: 'Content section not found' })
   async findBySectionName(@Param('sectionName') sectionName: string) {
-    return await this.contentManagementService.findBySectionName(sectionName);
+    const content = await this.contentManagementService.findBySectionName(sectionName);
+    return {
+      status: true,
+      message: 'Content section found successfully',
+      data: content
+    };
   }
 
   @Patch(':sectionName')
-  @UseGuards(PermissionsGuard)
   @RequirePermissions(Permission.CONTENT_MANAGEMENT_UPDATE)
   @ApiOperation({ summary: 'Update content section by unique section name' })
   @ApiParam({ name: 'sectionName', description: 'Unique section name' })
@@ -77,9 +88,61 @@ export class ContentManagementController {
     @Param('sectionName') sectionName: string,
     @Body() updateContentManagementDto: UpdateContentManagementDto,
   ) {
-    return await this.contentManagementService.updateBySectionName(
+    const content = await this.contentManagementService.updateBySectionName(
       sectionName,
       updateContentManagementDto,
     );
+    return {
+      status: true,
+      message: 'Content section updated successfully',
+      data: content
+    };
+  }
+
+  @Post('upload/:sectionName')
+  @RequirePermissions(Permission.CONTENT_MANAGEMENT_CREATE, Permission.CONTENT_MANAGEMENT_UPDATE)
+  @UseInterceptors(FileInterceptor('image', multerConfig))
+  @ApiOperation({ summary: 'Create or update content section with image upload' })
+  @ApiConsumes('multipart/form-data')
+  @ApiParam({ name: 'sectionName', description: 'Unique section name' })
+  @ApiResponse({
+    status: 200,
+    description: 'Content section created/updated successfully with image',
+    type: ContentManagementResponseDto,
+  })
+  async uploadContent(
+    @Param('sectionName') sectionName: string,
+    @Body() contentData: any,
+    @UploadedFile() image?: Express.Multer.File,
+  ) {
+    const content = await this.contentManagementService.upsertContentWithImage(
+      sectionName,
+      contentData,
+      image,
+    );
+    return {
+      status: true,
+      message: 'Content section uploaded successfully',
+      data: content
+    };
+  }
+
+  @Get('parsed/:sectionName')
+  @UseGuards(PermissionsGuard)
+  @RequirePermissions(Permission.CONTENT_MANAGEMENT_READ)
+  @ApiOperation({ summary: 'Get parsed JSON content by section name' })
+  @ApiParam({ name: 'sectionName', description: 'Unique section name' })
+  @ApiResponse({
+    status: 200,
+    description: 'Parsed content retrieved successfully',
+  })
+  @ApiResponse({ status: 404, description: 'Content section not found' })
+  async getParsedContent(@Param('sectionName') sectionName: string) {
+    const parsedContent = await this.contentManagementService.getParsedContent(sectionName);
+    return {
+      status: true,
+      message: 'Parsed content retrieved successfully',
+      data: parsedContent,
+    };
   }
 }
