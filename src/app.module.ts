@@ -8,7 +8,8 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { CategoriesModule } from './categories/categories.module';
 import { CoursesModule } from './courses/courses.module';
-import { ContentManagementModule } from './content-management/content-management.module';
+import { UploadsModule } from './uploads/uploads.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }), 
@@ -27,8 +28,8 @@ import { ContentManagementModule } from './content-management/content-management
     AuthModule,
     UsersModule,
     CategoriesModule,
-    CoursesModule,
-    ContentManagementModule,
+  CoursesModule,
+  UploadsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
