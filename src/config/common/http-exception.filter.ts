@@ -12,10 +12,18 @@ export class HttpExceptionFilter implements ExceptionFilter {
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    const message =
-      exception instanceof HttpException
-        ? exception.message
-        : 'Internal server error';
+    let message = exception instanceof HttpException ? exception.message : 'Internal server error';
+
+    // Try to extract detailed validation messages
+    if (exception instanceof HttpException) {
+      const res: any = exception.getResponse?.();
+      const detailed = res?.message;
+      if (Array.isArray(detailed) && detailed.length) {
+        message = detailed.join('; ');
+      } else if (typeof detailed === 'string') {
+        message = detailed;
+      }
+    }
 
     response.status(status).json({
       status: false,

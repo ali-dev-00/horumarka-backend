@@ -14,7 +14,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { CoursesService } from './courses.service';
 import { CreateCourseDto, UpdateCourseDto, ModeOfStudy, CourseType } from './course.dto';
 import { Course } from '../schemas/course.schema';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody, ApiQuery } from '@nestjs/swagger';
 import { RequirePermissions } from '../auth/permissions.decorator';
 import { Permission } from '../config/permissions';
 import { ServerResponse } from '../config/common/response.dto';
@@ -38,13 +38,14 @@ export class CoursesController {
         category: { type: 'string', description: 'Category ObjectId' },
         whatYouWillLearn: { type: 'string' }, // string (not array)
         location: { type: 'string' },
+        duration: { type: 'string' },
         modeOfStudy: { type: 'string', enum: Object.values(ModeOfStudy) },
         status: { type: 'boolean', default: true },
         thumbnail: { type: 'string', format: 'binary' },
         noOfVacancies: { type: 'integer', minimum: 0 },
         type: { type: 'string', enum: Object.values(CourseType) },
       },
-      required: ['title', 'description', 'category', 'whatYouWillLearn', 'location', 'modeOfStudy', 'noOfVacancies', 'type'],
+  required: ['title', 'description', 'category', 'whatYouWillLearn', 'location', 'duration', 'modeOfStudy', 'noOfVacancies', 'type', 'status', 'thumbnail'],
     },
   })
   @UseInterceptors(FileInterceptor('thumbnail'))
@@ -52,6 +53,13 @@ export class CoursesController {
     @Body() createCourseDto: CreateCourseDto,
     @UploadedFile() thumbnail?: Express.Multer.File,
   ): Promise<ServerResponse<Course>> {
+    if (!thumbnail) {
+      return {
+        status: false,
+        message: 'Thumbnail is required',
+        data: null,
+      };
+    }
     const newCourse = await this.coursesService.create(createCourseDto, thumbnail);
 
     if (!newCourse) {
@@ -71,26 +79,30 @@ export class CoursesController {
 
   @Get()
   @RequirePermissions(Permission.COURSE_READ)
-  @ApiOperation({ summary: 'Get all courses' })
+  @ApiOperation({ summary: 'Get all courses with pagination' })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 10)' })
   async findAll(
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
+    @Query('page') page = '1',
+    @Query('limit') limit = '10',
   ): Promise<ServerResponse<Course[]>> {
-    let courses: Course[];
-
-    if (page && limit) {
-      const p = Math.max(parseInt(page, 10) || 1, 1);
-      const l = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 100);
-      courses = await this.coursesService.findAllPaginated(p, l);
-    } else {
-      courses = await this.coursesService.findAll();
-    }
-
+    const p = Math.max(parseInt(page, 10) || 1, 1);
+    const l = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 100);
+    const { items, total } = await this.coursesService.findAllPaginated(p, l);
     return {
       status: true,
       message: 'Courses fetched successfully',
-      data: courses,
+      data: items,
+      pagination: { page: p, limit: l, total },
     };
+  }
+
+  @Get('all')
+  @RequirePermissions(Permission.COURSE_READ)
+  @ApiOperation({ summary: 'Get all courses without pagination' })
+  async findAllWithoutPagination(): Promise<ServerResponse<Course[]>> {
+    const courses = await this.coursesService.findAll();
+    return { status: true, message: 'Courses fetched successfully', data: courses };
   }
 
   @Get('by-type')
@@ -144,6 +156,7 @@ export class CoursesController {
         category: { type: 'string' },
         whatYouWillLearn: { type: 'string' }, // string (not array)
         location: { type: 'string' },
+  duration: { type: 'string' },
         modeOfStudy: { type: 'string', enum: Object.values(ModeOfStudy) },
         noOfVacancies: { type: 'integer', minimum: 0 },
         type: { type: 'string', enum: Object.values(CourseType) },

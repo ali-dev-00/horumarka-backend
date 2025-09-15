@@ -23,6 +23,9 @@ export class Course {
   @Prop({ type: String, required: true, trim: true })
   location: string;
 
+  @Prop({ type: String, required: true, trim: true })
+  duration: string;
+
   @Prop({ required: true, enum: ModeOfStudy })
   modeOfStudy: ModeOfStudy;
 

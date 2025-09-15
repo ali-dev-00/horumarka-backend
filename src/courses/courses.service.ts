@@ -39,13 +39,17 @@ export class CoursesService {
     return this.courseModel.find().populate('category').exec();
   }
 
-  async findAllPaginated(page: number, limit: number): Promise<Course[]> {
-    return this.courseModel
-      .find()
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .populate('category')
-      .exec();
+  async findAllPaginated(page: number, limit: number): Promise<{ items: Course[]; total: number }> {
+    const [items, total] = await Promise.all([
+      this.courseModel
+        .find()
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .populate('category')
+        .exec(),
+      this.courseModel.countDocuments().exec(),
+    ]);
+    return { items, total };
   }
 
   async findOne(id: string): Promise<Course | null> {
@@ -65,7 +69,7 @@ export class CoursesService {
       if (existing) return null;
     }
 
-    const update: any = { ...updateDto };
+  const update: any = { ...updateDto };
 
     if (updateDto.category) {
       update.category = new Types.ObjectId(updateDto.category);

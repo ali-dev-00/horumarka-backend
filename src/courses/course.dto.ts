@@ -14,9 +14,17 @@ export enum ModeOfStudy {
 }
 
 export class CreateCourseDto {
-  @IsString() title: string;
-  @IsString() description: string;
-  @IsMongoId() category: string;
+  @IsString()
+  @Transform(({ value }) => normalizeString(value))
+  title: string;
+
+  @IsString()
+  @Transform(({ value }) => normalizeString(value))
+  description: string;
+
+  @IsMongoId()
+  @Transform(({ value }) => normalizeString(value))
+  category: string;
 
   @IsString()
   @Transform(({ value }) => String(Array.isArray(value) ? value[0] : value).trim())
@@ -29,21 +37,30 @@ export class CreateCourseDto {
   @IsEnum(ModeOfStudy) modeOfStudy: ModeOfStudy;
 
   @IsInt() @Min(0)
+  @Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') return undefined;
+    if (Array.isArray(value)) value = value[0];
+    const n = parseInt(value as any, 10);
+    return Number.isNaN(n) ? undefined : n;
+  })
   noOfVacancies: number;
 
   @IsEnum(CourseType)
   type: CourseType;
 
-  @IsOptional()
   @IsBoolean()
   @Transform(({ value }) => toBoolean(value))
-  status?: boolean;
+  status: boolean;
+
+  @IsString()
+  @Transform(({ value }) => normalizeString(value))
+  duration: string;
 }
 
 export class UpdateCourseDto {
-  @IsOptional() @IsString() title?: string;
-  @IsOptional() @IsString() description?: string;
-  @IsOptional() @IsMongoId() category?: string;
+  @IsOptional() @IsString() @Transform(({ value }) => maybeNormalizeString(value)) title?: string;
+  @IsOptional() @IsString() @Transform(({ value }) => maybeNormalizeString(value)) description?: string;
+  @IsOptional() @IsMongoId() @Transform(({ value }) => maybeNormalizeString(value)) category?: string;
 
   @IsOptional()
   @IsString()
@@ -58,12 +75,20 @@ export class UpdateCourseDto {
   @IsOptional() @IsEnum(ModeOfStudy) modeOfStudy?: ModeOfStudy;
 
   @IsOptional() @IsInt() @Min(0)
+  @Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') return undefined;
+    if (Array.isArray(value)) value = value[0];
+    const n = parseInt(value as any, 10);
+    return Number.isNaN(n) ? undefined : n;
+  })
   noOfVacancies?: number;
 
   @IsOptional() @IsEnum(CourseType)
   type?: CourseType;
 
   @IsOptional() @IsBoolean() @Transform(({ value }) => toBoolean(value)) status?: boolean;
+
+  @IsOptional() @IsString() @Transform(({ value }) => maybeNormalizeString(value)) duration?: string;
 }
 // Helpers for multipart/form-data friendliness
 function normalizeString(value: any): string {
