@@ -11,13 +11,17 @@ import * as bcrypt from 'bcryptjs';
 export class UsersService {
   constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
 
-  async findAllPaginated(page: number, limit: number): Promise<User[]> {
-    return this.userModel
-      .find()
-      .populate('roleId')
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .exec();
+  async findAllPaginated(page: number, limit: number): Promise<{ items: User[]; total: number }> {
+    const [items, total] = await Promise.all([
+      this.userModel
+        .find()
+        .populate('roleId')
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .exec(),
+      this.userModel.countDocuments().exec(),
+    ]);
+    return { items, total };
   }
   
   async create(createUserDto: CreateUserDto): Promise<User | null> {

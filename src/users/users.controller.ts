@@ -30,8 +30,13 @@ export class UsersController {
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
   @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 10)' })
   async findAll(@Query('page') page = 1, @Query('limit') limit = 10): Promise<ServerResponse<User[]>> {
-    const users = await this.usersService.findAllPaginated(+page, +limit);
-    return { status: true, message: 'Users fetched successfully', data: users };
+    const { items, total } = await this.usersService.findAllPaginated(+page, +limit);
+    return {
+      status: true,
+      message: 'Users fetched successfully',
+      data: items,
+      pagination: { page: +page, limit: +limit, total },
+    };
   }
 
   @Get('all')

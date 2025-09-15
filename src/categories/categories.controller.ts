@@ -29,8 +29,15 @@ export class CategoriesController {
   @RequirePermissions(Permission.CATEGORY_READ)
   @ApiOperation({ summary: 'Get all categories (paginated)' })
   async findAll(@Query('page') page = 1, @Query('limit') limit = 10): Promise<ServerResponse<Category[]>> {
-    const categories = await this.categoriesService.findAllPaginated(+page, +limit);
-    return { status: true, message: 'Categories fetched successfully', data: categories };
+    const p = Math.max(+page || 1, 1);
+    const l = Math.min(Math.max(+limit || 10, 1), 100);
+    const { items, total } = await this.categoriesService.findAllPaginated(p, l);
+    return {
+      status: true,
+      message: 'Categories fetched successfully',
+      data: items,
+      pagination: { page: p, limit: l, total },
+    };
   }
 
   @Get('all')

@@ -1,6 +1,7 @@
+
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { ModeOfStudy } from '../courses/course.dto';
+import { ModeOfStudy, CourseType } from '../courses/course.dto';
 
 @Schema({ timestamps: true })
 export class Course {
@@ -27,6 +28,12 @@ export class Course {
 
   @Prop({ required: true, default: true })
   status: boolean;
+
+  @Prop({ required: true })
+  noOfVacancies: number;
+
+  @Prop({ required: true, enum: CourseType })
+  type: CourseType;
 }
 
 export type CourseDocument = Course & Document;

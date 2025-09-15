@@ -8,11 +8,16 @@ import { CreateCategoryDto, UpdateCategoryDto } from './category.dto';
 export class CategoriesService {
   constructor(@InjectModel(Category.name) private categoryModel: Model<CategoryDocument>) {}
 
-  async findAllPaginated(page: number, limit: number): Promise<Category[]> {
-    return this.categoryModel.find()
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .exec();
+  async findAllPaginated(page: number, limit: number): Promise<{ items: Category[]; total: number }> {
+    const [items, total] = await Promise.all([
+      this.categoryModel
+        .find()
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .exec(),
+      this.categoryModel.countDocuments().exec(),
+    ]);
+    return { items, total };
   }
 
   async create(createCategoryDto: CreateCategoryDto): Promise<Category | null> {

@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Param, Delete, Put, Query, NotFoundExcepti
 import { RolesService } from './roles.service';
 import { CreateRoleDto, UpdateRoleDto } from './role.dto';
 import { Role } from '../schemas/role.schema';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { RequirePermissions } from '../auth/permissions.decorator';
 import { Permission } from '../config/permissions';
 import { ServerResponse } from '../config/common/response.dto';
@@ -39,8 +39,23 @@ export class RolesController {
 
   @Get()
   @RequirePermissions(Permission.ROLE_READ)
-  @ApiOperation({ summary: 'Get all roles' })
-  async findAll(): Promise<ServerResponse<Role[]>> {
+  @ApiOperation({ summary: 'Get all roles with pagination' })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 10)' })
+  async findAll(@Query('page') page = 1, @Query('limit') limit = 10): Promise<ServerResponse<Role[]>> {
+    const { items, total } = await this.rolesService.findAllPaginated(+page, +limit);
+    return {
+      status: true,
+      message: 'Roles fetched successfully',
+      data: items,
+      pagination: { page: +page, limit: +limit, total },
+    };
+  }
+
+  @Get('all')
+  @RequirePermissions(Permission.ROLE_READ)
+  @ApiOperation({ summary: 'Get all roles without pagination' })
+  async findAllWithoutPagination(): Promise<ServerResponse<Role[]>> {
     const roles = await this.rolesService.findAll();
     return {
       status: true,

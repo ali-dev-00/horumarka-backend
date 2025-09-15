@@ -1,4 +1,9 @@
-import { IsString, IsEnum, IsOptional, IsBoolean, IsMongoId } from 'class-validator';
+import { IsString, IsEnum, IsOptional, IsBoolean, IsMongoId, IsInt, Min } from 'class-validator';
+export enum CourseType {
+  TRENDING = 'TRENDING',
+  UPCOMING = 'UPCOMING',
+  BEST_SELLER = 'BEST_SELLER',
+}
 import { Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -23,6 +28,12 @@ export class CreateCourseDto {
 
   @IsEnum(ModeOfStudy) modeOfStudy: ModeOfStudy;
 
+  @IsInt() @Min(0)
+  noOfVacancies: number;
+
+  @IsEnum(CourseType)
+  type: CourseType;
+
   @IsOptional()
   @IsBoolean()
   @Transform(({ value }) => toBoolean(value))
@@ -45,6 +56,13 @@ export class UpdateCourseDto {
   location?: string;
 
   @IsOptional() @IsEnum(ModeOfStudy) modeOfStudy?: ModeOfStudy;
+
+  @IsOptional() @IsInt() @Min(0)
+  noOfVacancies?: number;
+
+  @IsOptional() @IsEnum(CourseType)
+  type?: CourseType;
+
   @IsOptional() @IsBoolean() @Transform(({ value }) => toBoolean(value)) status?: boolean;
 }
 // Helpers for multipart/form-data friendliness

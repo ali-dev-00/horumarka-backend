@@ -8,12 +8,16 @@ import { CreateRoleDto, UpdateRoleDto } from './role.dto';
 export class RolesService {
   constructor(@InjectModel(Role.name) private roleModel: Model<RoleDocument>) {}
 
-  async findAllPaginated(page: number, limit: number): Promise<Role[]> {
-    return this.roleModel
-      .find()
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .exec();
+  async findAllPaginated(page: number, limit: number): Promise<{ items: Role[]; total: number }> {
+    const [items, total] = await Promise.all([
+      this.roleModel
+        .find()
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .exec(),
+      this.roleModel.countDocuments().exec(),
+    ]);
+    return { items, total };
   }
   
   async create(createRoleDto: CreateRoleDto): Promise<Role | null> {

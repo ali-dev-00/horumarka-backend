@@ -1,3 +1,4 @@
+
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -84,5 +85,9 @@ export class CoursesService {
 
   async remove(id: string) {
     return this.courseModel.findByIdAndDelete(id).exec();
+  }
+
+  async findByType(type: string): Promise<Course[]> {
+    return this.courseModel.find({ type }).populate('category').exec();
   }
 }

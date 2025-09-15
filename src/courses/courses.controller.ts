@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CoursesService } from './courses.service';
-import { CreateCourseDto, UpdateCourseDto, ModeOfStudy } from './course.dto';
+import { CreateCourseDto, UpdateCourseDto, ModeOfStudy, CourseType } from './course.dto';
 import { Course } from '../schemas/course.schema';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { RequirePermissions } from '../auth/permissions.decorator';
@@ -41,8 +41,10 @@ export class CoursesController {
         modeOfStudy: { type: 'string', enum: Object.values(ModeOfStudy) },
         status: { type: 'boolean', default: true },
         thumbnail: { type: 'string', format: 'binary' },
+        noOfVacancies: { type: 'integer', minimum: 0 },
+        type: { type: 'string', enum: Object.values(CourseType) },
       },
-      required: ['title', 'description', 'category', 'whatYouWillLearn', 'location', 'modeOfStudy'],
+      required: ['title', 'description', 'category', 'whatYouWillLearn', 'location', 'modeOfStudy', 'noOfVacancies', 'type'],
     },
   })
   @UseInterceptors(FileInterceptor('thumbnail'))
@@ -91,6 +93,25 @@ export class CoursesController {
     };
   }
 
+  @Get('by-type')
+  @RequirePermissions(Permission.COURSE_READ)
+  @ApiOperation({ summary: 'Get courses by type' })
+  async findByType(@Query('type') type: string): Promise<ServerResponse<Course[]>> {
+    if (!type || !Object.values(CourseType).includes(type as any)) {
+      return {
+        status: false,
+        message: 'Invalid or missing course type',
+        data: [],
+      };
+    }
+    const courses = await this.coursesService.findByType(type);
+    return {
+      status: true,
+      message: 'Courses fetched successfully',
+      data: courses,
+    };
+  }
+
   @Get(':id')
   @RequirePermissions(Permission.COURSE_READ)
   @ApiOperation({ summary: 'Get a course by ID' })
@@ -124,6 +145,8 @@ export class CoursesController {
         whatYouWillLearn: { type: 'string' }, // string (not array)
         location: { type: 'string' },
         modeOfStudy: { type: 'string', enum: Object.values(ModeOfStudy) },
+        noOfVacancies: { type: 'integer', minimum: 0 },
+        type: { type: 'string', enum: Object.values(CourseType) },
         status: { type: 'boolean' },
         thumbnail: { type: 'string', format: 'binary' },
       },
