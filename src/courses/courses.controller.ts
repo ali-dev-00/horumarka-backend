@@ -53,6 +53,16 @@ export class CoursesController {
     @Body() createCourseDto: CreateCourseDto,
     @UploadedFile() thumbnail?: Express.Multer.File,
   ): Promise<ServerResponse<Course>> {
+    // Debug logs for diagnostics
+    try {
+      console.log('[CoursesController:create] payload:', {
+        ...createCourseDto,
+        // avoid logging large strings
+        description: createCourseDto?.description?.slice?.(0, 120),
+        whatYouWillLearn: createCourseDto?.whatYouWillLearn?.slice?.(0, 120),
+      });
+      console.log('[CoursesController:create] thumbnail provided:', !!thumbnail);
+    } catch {}
     if (!thumbnail) {
       return {
         status: false,
@@ -60,21 +70,30 @@ export class CoursesController {
         data: null,
       };
     }
-    const newCourse = await this.coursesService.create(createCourseDto, thumbnail);
+    try {
+      const newCourse = await this.coursesService.create(createCourseDto, thumbnail);
 
-    if (!newCourse) {
+      if (!newCourse) {
+        return {
+          status: false,
+          message: 'Course with this title already exists',
+          data: null,
+        };
+      }
+
+      return {
+        status: true,
+        message: 'Course created successfully',
+        data: newCourse,
+      };
+    } catch (err) {
+      console.error('[CoursesController:create] error:', err);
       return {
         status: false,
-        message: 'Course with this title already exists',
+        message: (err as Error)?.message || 'Internal server error',
         data: null,
       };
     }
-
-    return {
-      status: true,
-      message: 'Course created successfully',
-      data: newCourse,
-    };
   }
 
   @Get()
@@ -171,23 +190,40 @@ export class CoursesController {
     @Body() updateCourseDto: UpdateCourseDto,
     @UploadedFile() thumbnail?: Express.Multer.File,
   ): Promise<ServerResponse<Course>> {
-    const updatedCourse = await this.coursesService.update(id, updateCourseDto, thumbnail);
+    try {
+      console.log('[CoursesController:update] id:', id);
+      console.log('[CoursesController:update] payload:', {
+        ...updateCourseDto,
+        description: updateCourseDto?.description?.slice?.(0, 120),
+        whatYouWillLearn: updateCourseDto?.whatYouWillLearn?.slice?.(0, 120),
+      });
+      console.log('[CoursesController:update] thumbnail provided:', !!thumbnail);
 
-    if (!updatedCourse) {
+      const updatedCourse = await this.coursesService.update(id, updateCourseDto, thumbnail);
+
+      if (!updatedCourse) {
+        return {
+          status: false,
+          message: updateCourseDto.title
+            ? 'Course with this title already exists'
+            : 'Course not found',
+          data: null,
+        };
+      }
+
+      return {
+        status: true,
+        message: 'Course updated successfully',
+        data: updatedCourse,
+      };
+    } catch (err) {
+      console.error('[CoursesController:update] error:', err);
       return {
         status: false,
-        message: updateCourseDto.title
-          ? 'Course with this title already exists'
-          : 'Course not found',
+        message: (err as Error)?.message || 'Internal server error',
         data: null,
       };
     }
-
-    return {
-      status: true,
-      message: 'Course updated successfully',
-      data: updatedCourse,
-    };
   }
 
   @Delete(':id')
