@@ -64,12 +64,22 @@ export class CoursesService {
     if (updateDto.title) {
       const existing = await this.courseModel.findOne({
         title: updateDto.title,
-        _id: { $ne: id },
+        _id: { $ne: new Types.ObjectId(id) },
       });
       if (existing) return null;
     }
 
-  const update: any = { ...updateDto };
+    // Build a safe update object by excluding undefined/null/empty-string values
+    const update: Record<string, unknown> = {};
+    Object.entries(updateDto).forEach(([key, value]) => {
+      if (
+        value !== undefined &&
+        value !== null &&
+        !(typeof value === 'string' && value.trim() === '')
+      ) {
+        (update as any)[key] = value;
+      }
+    });
 
     if (updateDto.category) {
       update.category = new Types.ObjectId(updateDto.category);
