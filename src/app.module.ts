@@ -9,6 +9,7 @@ import { UsersModule } from './users/users.module';
 import { CategoriesModule } from './categories/categories.module';
 import { CoursesModule } from './courses/courses.module';
 import { UploadsModule } from './uploads/uploads.module';
+import { BlogsModule } from './blogs/blogs.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { UploadsModule } from './uploads/uploads.module';
     CategoriesModule,
   CoursesModule,
   UploadsModule,
+  BlogsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
