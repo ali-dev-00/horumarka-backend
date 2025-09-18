@@ -8,8 +8,12 @@ export class Category {
   @Prop({ required: true, unique: true })
   name: string;
 
+  @Prop({ required: true, unique: true })
+  slug: string;
+
   @Prop({ required: true, default: true })
   status: boolean;
 }
 
 export const CategorySchema = SchemaFactory.createForClass(Category);
+CategorySchema.index({ slug: 1 }, { unique: true });

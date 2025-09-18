@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { Blog, BlogDocument, BlogStatus } from '../schemas/blog.schema';
+import { Blog, BlogDocument, BlogStatus, BlogType } from '../schemas/blog.schema';
+import { Category, CategoryDocument } from '../schemas/category.schema';
 import { CreateBlogDto, UpdateBlogDto } from './blog.dto';
 import { UploadService } from '../cloudinary/upload.service';
 
@@ -19,6 +20,7 @@ function slugify(str: string): string {
 export class BlogsService {
   constructor(
     @InjectModel(Blog.name) private blogModel: Model<BlogDocument>,
+    @InjectModel(Category.name) private categoryModel: Model<CategoryDocument>,
     private readonly uploadService: UploadService,
   ) {}
 
@@ -43,6 +45,10 @@ export class BlogsService {
     const uploaded = await this.uploadService.uploadImage(image);
     const featuredImage = uploaded.secure_url;
 
+    // validate category exists
+    const catExists = await this.categoryModel.exists({ _id: dto.category });
+    if (!catExists) throw new Error('Invalid category');
+
     const doc = new this.blogModel({
       title: dto.title,
       description: dto.description,
@@ -51,29 +57,41 @@ export class BlogsService {
       featuredImage,
       postedBy: userId && Types.ObjectId.isValid(userId) ? new Types.ObjectId(userId) : null,
       postedOn: new Date(),
+      category: new Types.ObjectId(dto.category),
+      type: (dto as any).type && Object.values(BlogType).includes((dto as any).type) ? (dto as any).type : BlogType.BLOG,
     });
     return doc.save();
   }
 
-  async findAll(): Promise<Blog[]> {
-    return this.blogModel.find().sort({ postedOn: -1 }).exec();
+  async findAll(filter: Record<string, any> = {}): Promise<Blog[]> {
+    return this.blogModel.find(filter).sort({ postedOn: -1 }).populate('category').exec();
   }
 
-  async findAllPaginated(page: number, limit: number): Promise<{ items: Blog[]; total: number }> {
+  async findAllPaginated(page: number, limit: number, query: { status?: string; slug?: string; category?: string; categorySlug?: string } = {}): Promise<{ items: Blog[]; total: number }> {
+    const filter: Record<string, any> = {};
+    if (query.status) filter.status = query.status;
+    if (query.slug) filter.slug = query.slug;
+    if (query.category && Types.ObjectId.isValid(query.category)) filter.category = new Types.ObjectId(query.category);
+    if (query.categorySlug) {
+      const cat = await this.categoryModel.findOne({ slug: query.categorySlug }, { _id: 1 }).exec();
+      if (!cat) return { items: [], total: 0 };
+      filter.category = cat._id;
+    }
     const [items, total] = await Promise.all([
       this.blogModel
-        .find()
+        .find(filter)
         .sort({ postedOn: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
+        .populate('category')
         .exec(),
-      this.blogModel.countDocuments().exec(),
+      this.blogModel.countDocuments(filter).exec(),
     ]);
     return { items, total };
   }
 
   async findOne(id: string): Promise<Blog | null> {
-    return this.blogModel.findById(id).exec();
+    return this.blogModel.findById(id).populate('category').exec();
   }
 
   async update(id: string, dto: UpdateBlogDto, image?: Express.Multer.File): Promise<Blog | null> {
@@ -87,6 +105,9 @@ export class BlogsService {
     Object.entries(dto).forEach(([k, v]) => {
       if (v !== undefined && v !== null && !(typeof v === 'string' && v.trim() === '')) update[k] = v;
     });
+    if (dto.type && Object.values(BlogType).includes(dto.type)) {
+      update.type = dto.type;
+    }
 
     if (dto.slug || dto.title) {
       const candidate = dto.slug && dto.slug.length ? dto.slug : dto.title!;
@@ -104,7 +125,12 @@ export class BlogsService {
       update.featuredImage = up.secure_url;
     }
 
-    return this.blogModel.findByIdAndUpdate(id, update, { new: true }).exec();
+    if (dto.category && Types.ObjectId.isValid(dto.category)) {
+      const catExists = await this.categoryModel.exists({ _id: dto.category });
+      if (!catExists) throw new Error('Invalid category');
+      update.category = new Types.ObjectId(dto.category);
+    }
+    return this.blogModel.findByIdAndUpdate(id, update, { new: true }).populate('category').exec();
   }
 
   async remove(id: string) {

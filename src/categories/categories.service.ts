@@ -4,6 +4,16 @@ import { Model } from 'mongoose';
 import { Category, CategoryDocument } from '../schemas/category.schema';
 import { CreateCategoryDto, UpdateCategoryDto } from './category.dto';
 
+function slugify(str: string): string {
+  return str
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+}
+
 @Injectable()
 export class CategoriesService {
   constructor(@InjectModel(Category.name) private categoryModel: Model<CategoryDocument>) {}
@@ -22,8 +32,13 @@ export class CategoriesService {
 
   async create(createCategoryDto: CreateCategoryDto): Promise<Category | null> {
     const existing = await this.categoryModel.findOne({ name: createCategoryDto.name });
-    if (existing) return null; 
-    const createdCategory = new this.categoryModel(createCategoryDto);
+    if (existing) return null;
+    let slug = createCategoryDto.slug ? slugify(createCategoryDto.slug) : slugify(createCategoryDto.name);
+    let base = slug; let i = 1;
+    while (await this.categoryModel.exists({ slug })) {
+      slug = `${base}-${i++}`;
+    }
+    const createdCategory = new this.categoryModel({ ...createCategoryDto, slug });
     return createdCategory.save();
   }
 
@@ -41,13 +56,20 @@ export class CategoriesService {
   
   async update(id: string, updateCategoryDto: UpdateCategoryDto): Promise<Category | null> {
     if (updateCategoryDto.name) {
-      const existing = await this.categoryModel.findOne({ 
-        name: updateCategoryDto.name,
-        _id: { $ne: id }
-      });
-      if (existing) return null; // ❌ Duplicate
+      const existing = await this.categoryModel.findOne({ name: updateCategoryDto.name, _id: { $ne: id } });
+      if (existing) return null;
     }
-    return this.categoryModel.findByIdAndUpdate(id, updateCategoryDto, { new: true }).exec();
+    const update: Record<string, any> = { ...updateCategoryDto };
+    if (updateCategoryDto.slug || updateCategoryDto.name) {
+      const candidate = updateCategoryDto.slug || updateCategoryDto.name!;
+      let slug = slugify(candidate);
+      let base = slug; let i = 1;
+      while (await this.categoryModel.exists({ slug, _id: { $ne: id } })) {
+        slug = `${base}-${i++}`;
+      }
+      update.slug = slug;
+    }
+    return this.categoryModel.findByIdAndUpdate(id, update, { new: true }).exec();
   }
   
   async remove(id: string): Promise<Category | null> {
@@ -59,5 +81,9 @@ export class CategoriesService {
     if (!category) return null;
     category.status = !category.status;
     return category.save();
+  }
+
+  async findBySlug(slug: string): Promise<Category | null> {
+    return this.categoryModel.findOne({ slug }).exec();
   }
 }

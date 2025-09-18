@@ -68,6 +68,15 @@ export class CategoriesController {
     return { status: true, message: 'Category fetched successfully', data: category };
   }
 
+  @Get('slug/:slug')
+  @Public()
+  @ApiOperation({ summary: 'Get a category by slug (Public)' })
+  async findBySlug(@Param('slug') slug: string): Promise<ServerResponse<Category>> {
+    const category = await this.categoriesService.findBySlug(slug);
+    if (!category) return { status: false, message: 'Category not found', data: null };
+    return { status: true, message: 'Category fetched successfully', data: category };
+  }
+
   @Put(':id')
   @ApiBearerAuth('JWT')
   @RequirePermissions(Permission.CATEGORY_UPDATE)

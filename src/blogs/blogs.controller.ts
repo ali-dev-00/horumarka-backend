@@ -26,9 +26,11 @@ export class BlogsController {
         description: { type: 'string' },
         slug: { type: 'string' },
         status: { type: 'string', enum: ['DRAFT', 'PUBLISHED'] },
+        category: { type: 'string', description: 'Category ObjectId' },
+        type: { type: 'string', enum: ['BLOG', 'NEWS', 'CAREER_STORY'], description: 'Blog type (default BLOG)' },
         featuredImage: { type: 'string', format: 'binary' },
       },
-      required: ['title', 'description', 'status', 'featuredImage'],
+      required: ['title', 'description', 'status', 'featuredImage', 'category'],
     },
   })
   @UseInterceptors(FileInterceptor('featuredImage'))
@@ -54,13 +56,21 @@ export class BlogsController {
   @ApiOperation({ summary: 'List blogs with pagination' })
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
   @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 10)' })
+  @ApiQuery({ name: 'status', required: false, type: String })
+  @ApiQuery({ name: 'slug', required: false, type: String })
+  @ApiQuery({ name: 'category', required: false, type: String, description: 'Category ObjectId' })
+  @ApiQuery({ name: 'categorySlug', required: false, type: String, description: 'Category slug' })
   async findAll(
     @Query('page') page = '1',
     @Query('limit') limit = '10',
+    @Query('status') status?: string,
+    @Query('slug') slug?: string,
+    @Query('category') category?: string,
+    @Query('categorySlug') categorySlug?: string,
   ): Promise<ServerResponse<Blog[]>> {
     const p = Math.max(parseInt(page, 10) || 1, 1);
     const l = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 100);
-    const { items, total } = await this.blogsService.findAllPaginated(p, l);
+  const { items, total } = await this.blogsService.findAllPaginated(p, l, { status, slug, category, categorySlug });
     return { status: true, message: 'Blogs fetched', data: items, pagination: { page: p, limit: l, total } };
   }
 
@@ -85,6 +95,8 @@ export class BlogsController {
         description: { type: 'string' },
         slug: { type: 'string' },
         status: { type: 'string', enum: ['DRAFT', 'PUBLISHED'] },
+        category: { type: 'string', description: 'Category ObjectId' },
+        type: { type: 'string', enum: ['BLOG', 'NEWS', 'CAREER_STORY'] },
         featuredImage: { type: 'string', format: 'binary' },
       },
     },

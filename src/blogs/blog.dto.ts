@@ -1,6 +1,6 @@
-import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString, IsMongoId } from 'class-validator';
 import { Transform } from 'class-transformer';
-import { BlogStatus } from '../schemas/blog.schema';
+import { BlogStatus, BlogType } from '../schemas/blog.schema';
 
 function normalizeString(value: any): string {
   if (value === undefined || value === null) return value as any;
@@ -32,6 +32,16 @@ export class CreateBlogDto {
   @IsEnum(BlogStatus)
   @Transform(({ value }) => normalizeString(value).toUpperCase())
   status: BlogStatus;
+
+  @IsMongoId()
+  @IsNotEmpty()
+  @Transform(({ value }) => normalizeString(value))
+  category: string; // Category ObjectId
+
+  @IsOptional() // optional from client; backend will default
+  @IsEnum(BlogType)
+  @Transform(({ value }) => (value === undefined ? undefined : normalizeString(value).toUpperCase()))
+  type?: BlogType;
 }
 
 export class UpdateBlogDto {
@@ -54,4 +64,14 @@ export class UpdateBlogDto {
   @IsEnum(BlogStatus)
   @Transform(({ value }) => (value === undefined ? undefined : normalizeString(value).toUpperCase()))
   status?: BlogStatus;
+
+  @IsOptional()
+  @IsMongoId()
+  @Transform(({ value }) => maybeNormalizeString(value))
+  category?: string;
+
+  @IsOptional()
+  @IsEnum(BlogType)
+  @Transform(({ value }) => (value === undefined ? undefined : normalizeString(value).toUpperCase()))
+  type?: BlogType;
 }

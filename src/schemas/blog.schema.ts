@@ -8,6 +8,12 @@ export enum BlogStatus {
   PUBLISHED = 'PUBLISHED',
 }
 
+export enum BlogType {
+  BLOG = 'BLOG',
+  NEWS = 'NEWS',
+  CAREER_STORY = 'CAREER_STORY',
+}
+
 @Schema({ timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' } })
 export class Blog {
   @Prop({ required: true })
@@ -30,7 +36,16 @@ export class Blog {
 
   @Prop({ type: Date, default: () => new Date() })
   postedOn: Date;
+
+  // Category reference (required)
+  @Prop({ type: Types.ObjectId, ref: 'Category', required: true })
+  category: Types.ObjectId;
+
+  // Classification type (blog/news/career story)
+  @Prop({ type: String, enum: BlogType, default: BlogType.BLOG, index: true })
+  type: BlogType;
 }
 
 export const BlogSchema = SchemaFactory.createForClass(Blog);
 BlogSchema.index({ slug: 1 }, { unique: true });
+BlogSchema.index({ category: 1, postedOn: -1 });
