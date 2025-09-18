@@ -10,8 +10,8 @@ import { User } from './schemas/user.schema';
 import { ALL_PERMISSIONS } from './config/permissions';
 import { HttpExceptionFilter } from './config/common/http-exception.filter';
 
-async function createApp() {
-  const app = await NestFactory.create(AppModule, { bodyParser: true });
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
 
   const configService = app.get(ConfigService);
   const frontendUrl = process.env.FRONTEND_URL || 'https://company-site-beryl.vercel.app';
@@ -81,7 +81,10 @@ async function createApp() {
     customSiteTitle: 'API Documentation',
   });
 
-  return { app, port };
+  // --- Start app ---
+  await app.listen(port);
+  console.log(`🚀 Server running on http://localhost:${port}`);
+  console.log(`📖 Swagger docs available at http://localhost:${port}/docs`);
 }
 
 async function createDefaultRolesAndAdminUser(app: any) {
@@ -119,22 +122,4 @@ async function createDefaultRolesAndAdminUser(app: any) {
   }
 }
 
-// Local development: start the server if not running in Vercel environment
-if (!process.env.VERCEL) {
-  createApp().then(({ app, port }) => {
-    app.listen(port).then(() => {
-      console.log(`🚀 Server running on http://localhost:${port}`);
-      console.log(`📖 Swagger docs available at http://localhost:${port}/docs`);
-    });
-  });
-}
-
-// Vercel serverless handler export
-let cachedApp: any; // Nest application instance cache
-export default async function handler(req: any, res: any) {
-  if (!cachedApp) {
-    const { app } = await createApp();
-    cachedApp = app.getHttpAdapter().getInstance();
-  }
-  return cachedApp(req, res);
-}
+bootstrap();

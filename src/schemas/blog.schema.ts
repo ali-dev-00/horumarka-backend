@@ -22,7 +22,7 @@ export class Blog {
   @Prop({ required: true })
   description: string;
 
-  @Prop({ required: true, unique: true, index: true })
+  @Prop({ required: true, unique: true })
   slug: string;
 
   @Prop({ required: true })
@@ -47,5 +47,4 @@ export class Blog {
 }
 
 export const BlogSchema = SchemaFactory.createForClass(Blog);
-BlogSchema.index({ slug: 1 }, { unique: true });
 BlogSchema.index({ category: 1, postedOn: -1 });

@@ -13,7 +13,7 @@ import { BlogsModule } from './blogs/blogs.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }), 
+    ConfigModule.forRoot({ isGlobal: true }),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => {
@@ -29,9 +29,9 @@ import { BlogsModule } from './blogs/blogs.module';
     AuthModule,
     UsersModule,
     CategoriesModule,
-  CoursesModule,
-  UploadsModule,
-  BlogsModule,
+    CoursesModule,
+    UploadsModule,
+    BlogsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
