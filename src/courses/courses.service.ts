@@ -34,6 +34,17 @@ export class CoursesService {
         console.log('[CoursesService:create] uploaded thumbnail url:', thumbnailUrl);
       }
 
+      // Validate sale logic
+      if (createDto.isOnSale && (createDto.salePrice === undefined || createDto.salePrice === null)) {
+        throw new Error('salePrice is required when isOnSale is true');
+      }
+      if (createDto.isOnSale && createDto.salePrice! >= createDto.price) {
+        throw new Error('salePrice must be less than price');
+      }
+      if (!createDto.isOnSale) {
+        (createDto as any).salePrice = null;
+      }
+
       const created = new this.courseModel({
         ...createDto,
         category: new Types.ObjectId(createDto.category),
@@ -42,7 +53,9 @@ export class CoursesService {
 
       const saved = await created.save();
       console.log('[CoursesService:create] saved course id:', saved?._id?.toString());
-      return saved;
+      const obj: any = saved.toObject();
+      obj.effectivePrice = obj.isOnSale && obj.salePrice != null ? obj.salePrice : obj.price;
+      return obj;
     } catch (err) {
       console.error('[CoursesService:create] error:', err);
       throw err;
@@ -50,24 +63,34 @@ export class CoursesService {
   }
 
   async findAll(): Promise<Course[]> {
-    return this.courseModel.find().populate('category').exec();
+    const docs = await this.courseModel.find().populate('category').exec();
+    return docs.map(d => { const o: any = d.toObject(); o.effectivePrice = o.isOnSale && o.salePrice != null ? o.salePrice : o.price; return o; });
   }
 
-  async findAllPaginated(page: number, limit: number): Promise<{ items: Course[]; total: number }> {
-    const [items, total] = await Promise.all([
+  // Overloads allow calling with (page, limit) or (page, limit, filter)
+  async findAllPaginated(page: number, limit: number): Promise<{ items: Course[]; total: number }>;
+  async findAllPaginated(page: number, limit: number, filter: Record<string, any>): Promise<{ items: Course[]; total: number }>;
+  async findAllPaginated(page: number, limit: number, filter: Record<string, any> = {}): Promise<{ items: Course[]; total: number }> {
+    const mongoFilter: Record<string, any> = { ...filter };
+    const [docs, total] = await Promise.all([
       this.courseModel
-        .find()
+        .find(mongoFilter)
         .skip((page - 1) * limit)
         .limit(limit)
         .populate('category')
         .exec(),
-      this.courseModel.countDocuments().exec(),
+      this.courseModel.countDocuments(mongoFilter).exec(),
     ]);
-    return { items, total };
+    const items = docs.map(d => { const o: any = d.toObject(); o.effectivePrice = o.isOnSale && o.salePrice != null ? o.salePrice : o.price; return o; });
+    return { items: items as any, total };
   }
 
   async findOne(id: string): Promise<Course | null> {
-    return this.courseModel.findById(id).populate('category').exec();
+    const doc = await this.courseModel.findById(id).populate('category').exec();
+    if (!doc) return null;
+    const o: any = doc.toObject();
+    o.effectivePrice = o.isOnSale && o.salePrice != null ? o.salePrice : o.price;
+    return o;
   }
 
   async update(
@@ -109,10 +132,27 @@ export class CoursesService {
         // Optional: delete old Cloudinary image if you store its public_id
       }
 
-      const updated = await this.courseModel
+      // Pricing / sale logic adjustments
+      if ('isOnSale' in update || 'salePrice' in update || 'price' in update) {
+        const current = await this.courseModel.findById(id).lean();
+        if (!current) return null;
+        const price = (update.price as number) ?? current.price;
+        const isOnSale = (update.isOnSale as boolean) ?? current.isOnSale;
+        const salePrice = (update.salePrice as number | null | undefined) ?? current.salePrice ?? null;
+        if (isOnSale) {
+          if (salePrice == null) throw new Error('salePrice is required when isOnSale is true');
+          if (salePrice >= price) throw new Error('salePrice must be less than price');
+          update.salePrice = salePrice;
+        } else {
+          update.salePrice = null;
+        }
+      }
+
+      const updatedDoc = await this.courseModel
         .findByIdAndUpdate(id, update, { new: true })
         .populate('category')
         .exec();
+      const updated = updatedDoc ? ((): any => { const o: any = updatedDoc.toObject(); o.effectivePrice = o.isOnSale && o.salePrice != null ? o.salePrice : o.price; return o; })() : null;
       console.log('[CoursesService:update] updated course id:', updated?._id?.toString());
       return updated;
     } catch (err) {
@@ -126,6 +166,7 @@ export class CoursesService {
   }
 
   async findByType(type: string): Promise<Course[]> {
-    return this.courseModel.find({ type }).populate('category').exec();
+    const docs = await this.courseModel.find({ type }).populate('category').exec();
+    return docs.map(d => { const o: any = d.toObject(); o.effectivePrice = o.isOnSale && o.salePrice != null ? o.salePrice : o.price; return o; });
   }
 }

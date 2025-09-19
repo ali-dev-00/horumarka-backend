@@ -37,6 +37,19 @@ export class Course {
 
   @Prop({ required: true, enum: CourseType })
   type: CourseType;
+
+  // Pricing & marketing flags
+  @Prop({ required: true, default: 0 })
+  price: number; // base/original price (0 means free)
+
+  @Prop({ required: true, default: false, index: true })
+  isBestSeller: boolean;
+
+  @Prop({ required: true, default: false, index: true })
+  isOnSale: boolean;
+
+  @Prop({ type: Number, required: false, default: null })
+  salePrice: number | null; // must be < price when isOnSale = true
 }
 
 export type CourseDocument = Course & Document;

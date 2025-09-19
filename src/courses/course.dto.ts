@@ -1,4 +1,4 @@
-import { IsString, IsEnum, IsOptional, IsBoolean, IsMongoId, IsInt, Min } from 'class-validator';
+import { IsString, IsEnum, IsOptional, IsBoolean, IsMongoId, IsInt, Min, IsNumber } from 'class-validator';
 export enum CourseType {
   TRENDING = 'TRENDING',
   UPCOMING = 'UPCOMING',
@@ -48,6 +48,23 @@ export class CreateCourseDto {
   @IsEnum(CourseType)
   type: CourseType;
 
+  @IsInt() @Min(0)
+  @Transform(({ value }) => toInt(value))
+  price: number;
+
+  @IsBoolean()
+  @Transform(({ value }) => toBoolean(value))
+  isBestSeller: boolean;
+
+  @IsBoolean()
+  @Transform(({ value }) => toBoolean(value))
+  isOnSale: boolean;
+
+  @IsOptional()
+  @IsInt() @Min(0)
+  @Transform(({ value }) => toInt(value))
+  salePrice?: number;
+
   @IsBoolean()
   @Transform(({ value }) => toBoolean(value))
   status: boolean;
@@ -86,6 +103,18 @@ export class UpdateCourseDto {
   @IsOptional() @IsEnum(CourseType)
   type?: CourseType;
 
+  @IsOptional() @IsInt() @Min(0) @Transform(({ value }) => toInt(value))
+  price?: number;
+
+  @IsOptional() @IsBoolean() @Transform(({ value }) => toBoolean(value))
+  isBestSeller?: boolean;
+
+  @IsOptional() @IsBoolean() @Transform(({ value }) => toBoolean(value))
+  isOnSale?: boolean;
+
+  @IsOptional() @IsInt() @Min(0) @Transform(({ value }) => toInt(value))
+  salePrice?: number;
+
   @IsOptional() @IsBoolean() @Transform(({ value }) => toBoolean(value)) status?: boolean;
 
   @IsOptional() @IsString() @Transform(({ value }) => maybeNormalizeString(value)) duration?: string;
@@ -112,4 +141,11 @@ function toBoolean(value: any): boolean | undefined {
   }
   if (typeof value === 'number') return value === 1;
   return undefined;
+}
+
+function toInt(value: any): number | undefined {
+  if (value === undefined || value === null || value === '') return undefined;
+  if (Array.isArray(value)) value = value[0];
+  const n = parseInt(value as any, 10);
+  return Number.isNaN(n) ? undefined : n;
 }

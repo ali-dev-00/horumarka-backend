@@ -16,6 +16,7 @@ import { CreateCourseDto, UpdateCourseDto, ModeOfStudy, CourseType } from './cou
 import { Course } from '../schemas/course.schema';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody, ApiQuery } from '@nestjs/swagger';
 import { RequirePermissions } from '../auth/permissions.decorator';
+import { Public } from '../auth/public.decorator';
 import { Permission } from '../config/permissions';
 import { ServerResponse } from '../config/common/response.dto';
 
@@ -44,8 +45,12 @@ export class CoursesController {
         thumbnail: { type: 'string', format: 'binary' },
         noOfVacancies: { type: 'integer', minimum: 0 },
         type: { type: 'string', enum: Object.values(CourseType) },
+        price: { type: 'integer', minimum: 0 },
+        isBestSeller: { type: 'boolean', default: false },
+        isOnSale: { type: 'boolean', default: false },
+        salePrice: { type: 'integer', minimum: 0 },
       },
-  required: ['title', 'description', 'category', 'whatYouWillLearn', 'location', 'duration', 'modeOfStudy', 'noOfVacancies', 'type', 'status', 'thumbnail'],
+  required: ['title', 'description', 'category', 'whatYouWillLearn', 'location', 'duration', 'modeOfStudy', 'noOfVacancies', 'type', 'status', 'thumbnail', 'price', 'isBestSeller', 'isOnSale'],
     },
   })
   @UseInterceptors(FileInterceptor('thumbnail'))
@@ -101,13 +106,20 @@ export class CoursesController {
   @ApiOperation({ summary: 'Get all courses with pagination' })
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
   @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 10)' })
+  @ApiQuery({ name: 'isBestSeller', required: false, type: Boolean })
+  @ApiQuery({ name: 'isOnSale', required: false, type: Boolean })
   async findAll(
     @Query('page') page = '1',
     @Query('limit') limit = '10',
+    @Query('isBestSeller') isBestSeller?: string,
+    @Query('isOnSale') isOnSale?: string,
   ): Promise<ServerResponse<Course[]>> {
     const p = Math.max(parseInt(page, 10) || 1, 1);
     const l = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 100);
-    const { items, total } = await this.coursesService.findAllPaginated(p, l);
+    const filters: Record<string, any> = {};
+    if (isBestSeller !== undefined) filters.isBestSeller = ['true', '1', 'yes'].includes(isBestSeller.toLowerCase());
+    if (isOnSale !== undefined) filters.isOnSale = ['true', '1', 'yes'].includes(isOnSale.toLowerCase());
+    const { items, total } = await this.coursesService.findAllPaginated(p, l, filters);
     return {
       status: true,
       message: 'Courses fetched successfully',
@@ -125,8 +137,8 @@ export class CoursesController {
   }
 
   @Get('by-type')
-  @RequirePermissions(Permission.COURSE_READ)
-  @ApiOperation({ summary: 'Get courses by type' })
+  @Public()
+  @ApiOperation({ summary: 'Get courses by type (public)' })
   async findByType(@Query('type') type: string): Promise<ServerResponse<Course[]>> {
     if (!type || !Object.values(CourseType).includes(type as any)) {
       return {
@@ -144,8 +156,8 @@ export class CoursesController {
   }
 
   @Get(':id')
-  @RequirePermissions(Permission.COURSE_READ)
-  @ApiOperation({ summary: 'Get a course by ID' })
+  @Public()
+  @ApiOperation({ summary: 'Get a course by ID (public)' })
   async findOne(@Param('id') id: string): Promise<ServerResponse<Course>> {
     const course = await this.coursesService.findOne(id);
     if (!course) {
@@ -181,6 +193,10 @@ export class CoursesController {
         type: { type: 'string', enum: Object.values(CourseType) },
         status: { type: 'boolean' },
         thumbnail: { type: 'string', format: 'binary' },
+        price: { type: 'integer', minimum: 0 },
+        isBestSeller: { type: 'boolean' },
+        isOnSale: { type: 'boolean' },
+        salePrice: { type: 'integer', minimum: 0 },
       },
     },
   })

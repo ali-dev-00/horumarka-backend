@@ -67,10 +67,17 @@ export class BlogsService {
     return this.blogModel.find(filter).sort({ postedOn: -1 }).populate('category').exec();
   }
 
-  async findAllPaginated(page: number, limit: number, query: { status?: string; slug?: string; category?: string; categorySlug?: string } = {}): Promise<{ items: Blog[]; total: number }> {
+  async findAllPaginated(
+    page: number,
+    limit: number,
+    query: { status?: string; slug?: string; category?: string; categorySlug?: string; type?: string } = {}
+  ): Promise<{ items: Blog[]; total: number }> {
     const filter: Record<string, any> = {};
     if (query.status) filter.status = query.status;
     if (query.slug) filter.slug = query.slug;
+    if (query.type && Object.values(BlogType).includes(query.type as BlogType)) {
+      filter.type = query.type;
+    }
     if (query.category && Types.ObjectId.isValid(query.category)) filter.category = new Types.ObjectId(query.category);
     if (query.categorySlug) {
       const cat = await this.categoryModel.findOne({ slug: query.categorySlug }, { _id: 1 }).exec();

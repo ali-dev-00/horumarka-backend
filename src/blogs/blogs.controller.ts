@@ -5,6 +5,7 @@ import { CreateBlogDto, UpdateBlogDto } from './blog.dto';
 import { Blog } from '../schemas/blog.schema';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { RequirePermissions } from '../auth/permissions.decorator';
+import { Public } from '../auth/public.decorator';
 import { Permission } from '../config/permissions';
 import { ServerResponse } from '../config/common/response.dto';
 
@@ -52,7 +53,7 @@ export class BlogsController {
   }
 
   @Get()
-  @RequirePermissions(Permission.BLOG_READ)
+  @Public()
   @ApiOperation({ summary: 'List blogs with pagination' })
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
   @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 10)' })
@@ -60,6 +61,7 @@ export class BlogsController {
   @ApiQuery({ name: 'slug', required: false, type: String })
   @ApiQuery({ name: 'category', required: false, type: String, description: 'Category ObjectId' })
   @ApiQuery({ name: 'categorySlug', required: false, type: String, description: 'Category slug' })
+  @ApiQuery({ name: 'type', required: false, type: String, description: 'Blog type filter (BLOG | NEWS | CAREER_STORY)' })
   async findAll(
     @Query('page') page = '1',
     @Query('limit') limit = '10',
@@ -67,10 +69,11 @@ export class BlogsController {
     @Query('slug') slug?: string,
     @Query('category') category?: string,
     @Query('categorySlug') categorySlug?: string,
+    @Query('type') type?: string,
   ): Promise<ServerResponse<Blog[]>> {
     const p = Math.max(parseInt(page, 10) || 1, 1);
     const l = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 100);
-  const { items, total } = await this.blogsService.findAllPaginated(p, l, { status, slug, category, categorySlug });
+  const { items, total } = await this.blogsService.findAllPaginated(p, l, { status, slug, category, categorySlug, type } as any);
     return { status: true, message: 'Blogs fetched', data: items, pagination: { page: p, limit: l, total } };
   }
 
